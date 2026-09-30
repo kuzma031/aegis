@@ -6,6 +6,8 @@ export type Result<T> =
   | { ok: true; value: T }
   | { ok: false; error: string };
 
+export type VoidResult = { ok: true } | { ok: false; error: string };
+
 export interface Context {
   id: ID;
   name: string;
@@ -58,6 +60,14 @@ export function ok<T>(value: T): Result<T> {
   return { ok: true, value };
 }
 
+export function okVoid(): VoidResult {
+  return { ok: true };
+}
+
 export function err<T = never>(error: string): Result<T> {
+  return { ok: false, error };
+}
+
+export function errVoid(error: string): VoidResult {
   return { ok: false, error };
 }
