@@ -19,7 +19,11 @@ import {
   type VoidResult,
 } from '@core/types';
 import type { Clock } from '@platform/clock';
-import type { AlarmAdapter, NotificationAdapter } from '@platform/interfaces';
+import type {
+  ActionBadgeAdapter,
+  AlarmAdapter,
+  NotificationAdapter,
+} from '@platform/interfaces';
 import type { StateRepository } from '@platform/storage';
 
 export { sitesToBlock };
@@ -30,6 +34,7 @@ export class SessionController {
   private readonly alarms: AlarmAdapter;
   private readonly notifications: NotificationAdapter;
   private readonly blockingSync: BlockingSynchronizer;
+  private readonly badge: ActionBadgeAdapter;
 
   constructor(
     repo: StateRepository,
@@ -37,12 +42,14 @@ export class SessionController {
     alarms: AlarmAdapter,
     notifications: NotificationAdapter,
     blockingSync: BlockingSynchronizer,
+    badge: ActionBadgeAdapter,
   ) {
     this.repo = repo;
     this.clock = clock;
     this.alarms = alarms;
     this.notifications = notifications;
     this.blockingSync = blockingSync;
+    this.badge = badge;
   }
 
   async handleCommand(command: Command): Promise<VoidResult> {
@@ -66,6 +73,10 @@ export class SessionController {
     }
   }
 
+  async handleBadgeTick(): Promise<void> {
+    await this.syncBadgeAndTick();
+  }
+
   async handleAlarm(): Promise<void> {
     const state = await this.repo.load();
     const session = state.activeSession;
@@ -80,7 +91,7 @@ export class SessionController {
       completeSession(current, this.clock.now()),
     );
     await this.alarms.clear();
-    await this.syncBlocking();
+    await this.syncSideEffects();
 
     if (completed.ok && completed.value.lastCompletion) {
       await this.notifications.showSessionComplete(completed.value.lastCompletion.record);
@@ -93,13 +104,13 @@ export class SessionController {
 
     if (!session) {
       await this.alarms.clear();
-      await this.syncBlocking();
+      await this.syncSideEffects();
       return;
     }
 
     if (session.status === 'paused') {
       await this.alarms.clear();
-      await this.syncBlocking();
+      await this.syncSideEffects();
       return;
     }
 
@@ -108,7 +119,7 @@ export class SessionController {
         completeSession(current, this.clock.now()),
       );
       await this.alarms.clear();
-      await this.syncBlocking();
+      await this.syncSideEffects();
       if (completed.ok && completed.value.lastCompletion) {
         await this.notifications.showSessionComplete(
           completed.value.lastCompletion.record,
@@ -120,7 +131,7 @@ export class SessionController {
     if (session.endsAt != null) {
       await this.alarms.schedule(session.endsAt);
     }
-    await this.syncBlocking();
+    await this.syncSideEffects();
   }
 
   private async start(contextId: string, durationMinutes: number): Promise<VoidResult> {
@@ -135,7 +146,7 @@ export class SessionController {
     if (endsAt != null) {
       await this.alarms.schedule(endsAt);
     }
-    await this.syncBlocking();
+    await this.syncSideEffects();
     return okVoid();
   }
 
@@ -145,7 +156,7 @@ export class SessionController {
       return result;
     }
     await this.alarms.clear();
-    await this.syncBlocking();
+    await this.syncSideEffects();
     return okVoid();
   }
 
@@ -159,7 +170,7 @@ export class SessionController {
     if (endsAt != null) {
       await this.alarms.schedule(endsAt);
     }
-    await this.syncBlocking();
+    await this.syncSideEffects();
     return okVoid();
   }
 
@@ -170,7 +181,7 @@ export class SessionController {
     }
     await this.alarms.clear();
     await this.notifications.clear();
-    await this.syncBlocking();
+    await this.syncSideEffects();
     return okVoid();
   }
 
@@ -210,8 +221,23 @@ export class SessionController {
     return outcome;
   }
 
-  private async syncBlocking(): Promise<void> {
+  private async syncSideEffects(): Promise<void> {
     const state = await this.repo.load();
     await this.blockingSync.syncFromState(state);
+    await this.syncBadgeAndTick(state);
+  }
+
+  private async syncBadgeAndTick(state?: AppState): Promise<void> {
+    const current = state ?? (await this.repo.load());
+    await this.badge.sync(current, this.clock.now());
+
+    const session = current.activeSession;
+    const running =
+      session?.status === 'running' && !isExpired(session, this.clock.now());
+    if (running) {
+      await this.alarms.startBadgeTick();
+    } else {
+      await this.alarms.clearBadgeTick();
+    }
   }
 }

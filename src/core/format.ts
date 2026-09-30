@@ -23,3 +23,26 @@ export function formatDuration(ms: number): string {
   }
   return `${minutes}m`;
 }
+
+/** Compact remaining-time label for the Chrome action badge (~4 chars). */
+export function formatBadgeText(remainingMs: number, paused: boolean): string {
+  if (paused) {
+    return '||';
+  }
+  const totalMinutes = Math.max(0, Math.ceil(remainingMs / 60_000));
+  if (totalMinutes <= 0) {
+    return '0m';
+  }
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (minutes === 0) {
+      return `${hours}h`;
+    }
+    if (totalMinutes < 100) {
+      return `${totalMinutes}m`;
+    }
+    return `${hours}h`;
+  }
+  return `${totalMinutes}m`;
+}

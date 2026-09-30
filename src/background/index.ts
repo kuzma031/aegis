@@ -2,9 +2,14 @@ import { SessionController } from './sessionController';
 import { BlockingSync } from './blockingSync';
 import { isCommand, type Command } from './messages';
 import type { VoidResult } from '@core/types';
+import { createActionBadgeAdapter } from '@platform/actionBadge';
 import { createBlockingAdapter } from '@platform/blocking';
 import { createSystemClock } from '@platform/clock';
-import { createAlarmAdapter, SESSION_END_ALARM } from '@platform/alarms';
+import {
+  BADGE_TICK_ALARM,
+  createAlarmAdapter,
+  SESSION_END_ALARM,
+} from '@platform/alarms';
 import {
   createNotificationAdapter,
   SESSION_COMPLETE_NOTIFICATION_ID,
@@ -16,6 +21,7 @@ const clock = createSystemClock();
 const repo = new ChromeStateRepository(clock);
 const alarms = createAlarmAdapter();
 const notifications = createNotificationAdapter();
+const badge = createActionBadgeAdapter();
 const extensionId = chrome.runtime.id;
 const blockingSync = new BlockingSync(
   createBlockingAdapter(extensionId),
@@ -28,6 +34,7 @@ const controller = new SessionController(
   alarms,
   notifications,
   blockingSync,
+  badge,
 );
 
 console.log('[focus] worker started');
@@ -51,6 +58,9 @@ chrome.runtime.onStartup.addListener(() => {
 repo.subscribe((state) => {
   void blockingSync.syncFromState(state).catch((error: unknown) => {
     console.error('[focus] storage blocking sync failed', error);
+  });
+  void badge.sync(state, clock.now()).catch((error: unknown) => {
+    console.error('[focus] storage badge sync failed', error);
   });
 });
 
@@ -77,6 +87,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === BADGE_TICK_ALARM) {
+    void controller.handleBadgeTick().catch((error: unknown) => {
+      console.error('[focus] badge tick failed', error);
+    });
+    return;
+  }
   if (alarm.name !== SESSION_END_ALARM) {
     return;
   }

@@ -3,7 +3,11 @@ import { SessionController } from './sessionController';
 import { sitesToBlock, type BlockingSynchronizer } from './blockingSync';
 import { DEVELOPMENT_CONTEXT_ID } from '@core/seed';
 import type { Clock } from '@platform/clock';
-import type { AlarmAdapter, NotificationAdapter } from '@platform/interfaces';
+import type {
+  ActionBadgeAdapter,
+  AlarmAdapter,
+  NotificationAdapter,
+} from '@platform/interfaces';
 import { MemoryStateRepository } from '@platform/storage';
 import type { AppState, SessionRecord } from '@core/types';
 
@@ -27,6 +31,7 @@ function createFakes(now: number) {
   const clock = new FakeClock(now);
   const repo = new MemoryStateRepository(clock);
   const scheduled: number[] = [];
+  let badgeTick = false;
   const alarms: AlarmAdapter = {
     async schedule(when: number) {
       scheduled.length = 0;
@@ -34,6 +39,12 @@ function createFakes(now: number) {
     },
     async clear() {
       scheduled.length = 0;
+    },
+    async startBadgeTick() {
+      badgeTick = true;
+    },
+    async clearBadgeTick() {
+      badgeTick = false;
     },
   };
   const notificationsShown: SessionRecord[] = [];
@@ -51,21 +62,46 @@ function createFakes(now: number) {
       synced.push(sitesToBlock(state));
     },
   };
+  const badgeSnapshots: Array<{ text: string; title: string }> = [];
+  const badge: ActionBadgeAdapter = {
+    async sync(state, syncNow) {
+      const session = state.activeSession;
+      if (!session) {
+        badgeSnapshots.push({ text: '', title: 'Aegis' });
+        return;
+      }
+      badgeSnapshots.push({
+        text: session.status === 'paused' ? '||' : 'active',
+        title: `now:${syncNow}`,
+      });
+    },
+  };
   const controller = new SessionController(
     repo,
     clock,
     alarms,
     notifications,
     blockingSync,
+    badge,
   );
-  return { clock, repo, controller, scheduled, notificationsShown, synced };
+  return {
+    clock,
+    repo,
+    controller,
+    scheduled,
+    notificationsShown,
+    synced,
+    badgeSnapshots,
+    isBadgeTickOn: () => badgeTick,
+  };
 }
 
 describe('SessionController', () => {
   const NOW = 1_700_000_000_000;
 
   it('starts, pauses, resumes, and completes a session', async () => {
-    const { clock, repo, controller, scheduled, notificationsShown } = createFakes(NOW);
+    const { clock, repo, controller, scheduled, notificationsShown, isBadgeTickOn } =
+      createFakes(NOW);
 
     const started = await controller.handleCommand({
       type: 'START_SESSION',
@@ -74,18 +110,21 @@ describe('SessionController', () => {
     });
     expect(started).toEqual({ ok: true });
     expect(scheduled).toEqual([NOW + 25 * 60_000]);
+    expect(isBadgeTickOn()).toBe(true);
 
     clock.advance(5 * 60_000);
     expect(await controller.handleCommand({ type: 'PAUSE_SESSION' })).toEqual({
       ok: true,
     });
     expect(scheduled).toEqual([]);
+    expect(isBadgeTickOn()).toBe(false);
 
     clock.advance(2 * 60_000);
     expect(await controller.handleCommand({ type: 'RESUME_SESSION' })).toEqual({
       ok: true,
     });
     expect(scheduled).toEqual([clock.now() + 20 * 60_000]);
+    expect(isBadgeTickOn()).toBe(true);
 
     clock.advance(20 * 60_000);
     await controller.handleAlarm();
@@ -96,6 +135,7 @@ describe('SessionController', () => {
     expect(state.history).toHaveLength(1);
     expect(notificationsShown).toHaveLength(1);
     expect(scheduled).toEqual([]);
+    expect(isBadgeTickOn()).toBe(false);
   });
 
   it('reconciles an expired running session after the worker was asleep', async () => {
@@ -171,5 +211,26 @@ describe('SessionController', () => {
     clock.advance(5 * 60_000);
     await controller.reconcile();
     expect(scheduled).toEqual([NOW + 25 * 60_000]);
+  });
+
+  it('updates the action badge while a session is active and clears it when idle', async () => {
+    const { clock, controller, badgeSnapshots } = createFakes(NOW);
+
+    await controller.handleCommand({
+      type: 'START_SESSION',
+      contextId: DEVELOPMENT_CONTEXT_ID,
+      durationMinutes: 25,
+    });
+    expect(badgeSnapshots.at(-1)?.text).toBe('active');
+
+    clock.advance(60_000);
+    await controller.handleBadgeTick();
+    expect(badgeSnapshots.at(-1)?.text).toBe('active');
+
+    await controller.handleCommand({ type: 'PAUSE_SESSION' });
+    expect(badgeSnapshots.at(-1)?.text).toBe('||');
+
+    await controller.handleCommand({ type: 'END_SESSION' });
+    expect(badgeSnapshots.at(-1)).toEqual({ text: '', title: 'Aegis' });
   });
 });

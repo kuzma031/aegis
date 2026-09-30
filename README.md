@@ -43,6 +43,10 @@ chrome.storage.local["focus.state"]
 
 Sessions store timestamps, not ticking counters. While running, remaining time is `endsAt - now`. While paused, remaining time is `remainingMs`. The UI derives the clock display from those values. `chrome.alarms` fires at `endsAt` so the service worker can complete the session even after it was suspended.
 
+### Toolbar badge
+
+While a focus session is active, the extension icon shows a compact badge (`25m`, `2h`, or `||` when paused) and a hover title with the full remaining clock. Idle clears the badge. The badge refreshes at least once a minute via a repeating alarm while a session is running.
+
 ### Blocking
 
 While a session is active (running or paused), `declarativeNetRequest` dynamic rules redirect matching main-frame navigations to `blocked.html#<original-url>`. Already-open tabs are redirected the same way. When blocking clears, those tabs are restored to the original URL. Storage changes mid-session (for example adding a site) re-sync rules immediately.

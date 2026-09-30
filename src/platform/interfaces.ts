@@ -1,4 +1,5 @@
 import type { SessionRecord } from '@core/types';
+import type { AppState } from '@core/types';
 
 export interface BlockingAdapter {
   sync(sites: string[]): Promise<void>;
@@ -7,11 +8,17 @@ export interface BlockingAdapter {
 export interface AlarmAdapter {
   schedule(when: number): Promise<void>;
   clear(): Promise<void>;
+  startBadgeTick(): Promise<void>;
+  clearBadgeTick(): Promise<void>;
 }
 
 export interface NotificationAdapter {
   showSessionComplete(record: SessionRecord): Promise<void>;
   clear(): Promise<void>;
+}
+
+export interface ActionBadgeAdapter {
+  sync(state: AppState, now: number): Promise<void>;
 }
 
 export interface TabInfo {
@@ -28,5 +35,11 @@ export interface TabsAdapter {
 export const noopBlockingAdapter: BlockingAdapter = {
   async sync(): Promise<void> {
     // Phase 4 wires real blocking.
+  },
+};
+
+export const noopActionBadgeAdapter: ActionBadgeAdapter = {
+  async sync(): Promise<void> {
+    // Optional in tests.
   },
 };
