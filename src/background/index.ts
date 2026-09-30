@@ -1,25 +1,33 @@
 import { SessionController } from './sessionController';
+import { BlockingSync } from './blockingSync';
 import { isCommand, type Command } from './messages';
 import type { VoidResult } from '@core/types';
+import { createBlockingAdapter } from '@platform/blocking';
 import { createSystemClock } from '@platform/clock';
 import { createAlarmAdapter, SESSION_END_ALARM } from '@platform/alarms';
-import { noopBlockingAdapter } from '@platform/interfaces';
 import {
   createNotificationAdapter,
   SESSION_COMPLETE_NOTIFICATION_ID,
 } from '@platform/notifications';
 import { ChromeStateRepository } from '@platform/storage';
+import { createTabsAdapter } from '@platform/tabs';
 
 const clock = createSystemClock();
 const repo = new ChromeStateRepository(clock);
 const alarms = createAlarmAdapter();
 const notifications = createNotificationAdapter();
+const extensionId = chrome.runtime.id;
+const blockingSync = new BlockingSync(
+  createBlockingAdapter(extensionId),
+  createTabsAdapter(),
+  extensionId,
+);
 const controller = new SessionController(
   repo,
   clock,
   alarms,
   notifications,
-  noopBlockingAdapter,
+  blockingSync,
 );
 
 console.log('[focus] worker started');
@@ -37,6 +45,12 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   void controller.reconcile().catch((error: unknown) => {
     console.error('[focus] onStartup reconcile failed', error);
+  });
+});
+
+repo.subscribe((state) => {
+  void blockingSync.syncFromState(state).catch((error: unknown) => {
+    console.error('[focus] storage blocking sync failed', error);
   });
 });
 

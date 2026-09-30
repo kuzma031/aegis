@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { SessionController } from './sessionController';
+import { sitesToBlock, type BlockingSynchronizer } from './blockingSync';
 import { DEVELOPMENT_CONTEXT_ID } from '@core/seed';
 import type { Clock } from '@platform/clock';
-import type {
-  AlarmAdapter,
-  BlockingAdapter,
-  NotificationAdapter,
-} from '@platform/interfaces';
+import type { AlarmAdapter, NotificationAdapter } from '@platform/interfaces';
 import { MemoryStateRepository } from '@platform/storage';
-import type { SessionRecord } from '@core/types';
+import type { AppState, SessionRecord } from '@core/types';
 
 class FakeClock implements Clock {
   current: number;
@@ -49,12 +46,18 @@ function createFakes(now: number) {
     },
   };
   const synced: string[][] = [];
-  const blocking: BlockingAdapter = {
-    async sync(sites) {
-      synced.push([...sites]);
+  const blockingSync: BlockingSynchronizer = {
+    async syncFromState(state: AppState) {
+      synced.push(sitesToBlock(state));
     },
   };
-  const controller = new SessionController(repo, clock, alarms, notifications, blocking);
+  const controller = new SessionController(
+    repo,
+    clock,
+    alarms,
+    notifications,
+    blockingSync,
+  );
   return { clock, repo, controller, scheduled, notificationsShown, synced };
 }
 

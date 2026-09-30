@@ -1,4 +1,6 @@
 import type { Command } from './messages';
+import type { BlockingSynchronizer } from './blockingSync';
+import { sitesToBlock } from './blockingSync';
 import {
   completeSession,
   dismissCompletion,
@@ -17,33 +19,30 @@ import {
   type VoidResult,
 } from '@core/types';
 import type { Clock } from '@platform/clock';
-import type {
-  AlarmAdapter,
-  BlockingAdapter,
-  NotificationAdapter,
-} from '@platform/interfaces';
-import { noopBlockingAdapter } from '@platform/interfaces';
+import type { AlarmAdapter, NotificationAdapter } from '@platform/interfaces';
 import type { StateRepository } from '@platform/storage';
+
+export { sitesToBlock };
 
 export class SessionController {
   private readonly repo: StateRepository;
   private readonly clock: Clock;
   private readonly alarms: AlarmAdapter;
   private readonly notifications: NotificationAdapter;
-  private readonly blocking: BlockingAdapter;
+  private readonly blockingSync: BlockingSynchronizer;
 
   constructor(
     repo: StateRepository,
     clock: Clock,
     alarms: AlarmAdapter,
     notifications: NotificationAdapter,
-    blocking: BlockingAdapter = noopBlockingAdapter,
+    blockingSync: BlockingSynchronizer,
   ) {
     this.repo = repo;
     this.clock = clock;
     this.alarms = alarms;
     this.notifications = notifications;
-    this.blocking = blocking;
+    this.blockingSync = blockingSync;
   }
 
   async handleCommand(command: Command): Promise<VoidResult> {
@@ -213,17 +212,6 @@ export class SessionController {
 
   private async syncBlocking(): Promise<void> {
     const state = await this.repo.load();
-    const sites = sitesToBlock(state);
-    await this.blocking.sync(sites);
+    await this.blockingSync.syncFromState(state);
   }
-}
-
-export function sitesToBlock(state: AppState): string[] {
-  if (!state.activeSession) {
-    return [];
-  }
-  const context = state.contexts.find(
-    (item) => item.id === state.activeSession?.contextId,
-  );
-  return context?.sites ?? [];
 }
