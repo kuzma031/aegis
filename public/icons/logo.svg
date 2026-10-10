@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="goldGleam" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d1d0c"/>
+      <stop offset="100%" stop-color="#180e05"/>
+    </linearGradient>
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Shield Outer Frame -->
+  <path d="M 256 44 C 360 44 424 96 424 204 C 424 332 328 424 256 468 C 184 424 88 332 88 204 C 88 96 152 44 256 44 Z" fill="url(#shieldGrad)" />
+
+  <!-- Inner Shield Cutout / Inset -->
+  <path d="M 256 68 C 342 68 396 112 396 208 C 396 316 312 396 256 436 C 200 396 116 316 116 208 C 116 112 170 68 256 68 Z" fill="url(#darkBg)" />
+
+  <!-- Concentric Gorgon Aegis Halo Rings -->
+  <circle cx="256" cy="224" r="112" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="6 6" opacity="0.6"/>
+  <circle cx="256" cy="224" r="88" fill="none" stroke="url(#goldGleam)" stroke-width="3" opacity="0.8"/>
+  <circle cx="256" cy="224" r="64" fill="#b45309" fill-opacity="0.3"/>
+
+  <!-- Stylized Geometric Gorgoneion Emblem (Eyes & Radiant Sun-Shield) -->
+  <!-- Radiating Crest Rays -->
+  <g stroke="url(#goldGleam)" stroke-width="3.5" stroke-linecap="round">
+    <line x1="256" y1="136" x2="256" y2="152"/>
+    <line x1="318" y1="162" x2="306" y2="174"/>
+    <line x1="344" y1="224" x2="328" y2="224"/>
+    <line x1="318" y1="286" x2="306" y2="274"/>
+    <line x1="194" y1="162" x2="206" y2="174"/>
+    <line x1="168" y1="224" x2="184" y2="224"/>
+    <line x1="194" y1="286" x2="206" y2="274"/>
+  </g>
+
+  <!-- Central Focus Gorgon Eye / Vault Emblem -->
+  <path d="M 208 224 C 208 224 230 196 256 196 C 282 196 304 224 304 224 C 304 224 282 252 256 252 C 230 252 208 224 208 224 Z" fill="none" stroke="url(#goldGleam)" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="256" cy="224" r="14" fill="url(#goldGleam)"/>
+  <circle cx="256" cy="224" r="6" fill="#180e05"/>
+
+  <!-- Stylized Protective Crest / Snake Curve Wings at Lower Shield -->
+  <path d="M 220 280 C 236 294 276 294 292 280" fill="none" stroke="url(#goldGleam)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 236 312 C 246 322 266 322 276 312" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="256" cy="350" r="5" fill="#f59e0b"/>
+
+  <!-- Shield Apex Jewel -->
+  <polygon points="256,48 266,66 256,80 246,66" fill="#fef3c7"/>
+</svg>

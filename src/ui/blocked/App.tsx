@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatClock } from '@core/format';
 import { getRemainingMs } from '@core/session';
 import { useAppState } from '../hooks/useAppState';
 import { useNow } from '../hooks/useNow';
 import { Button } from '../components/Button';
+import { IconShield } from '../components/icons';
 import { sendCommand } from '../services/commands';
 
 function parseOriginalFromHash(hash: string): { href: string; host: string } | null {
@@ -37,6 +38,7 @@ export function App() {
   const running = state?.activeSession?.status === 'running';
   const now = useNow(Boolean(running));
   const [error, setError] = useState<string | null>(null);
+  const recordedDistraction = useRef(false);
 
   const original = useMemo(
     () => parseOriginalFromHash(window.location.hash),
@@ -51,6 +53,20 @@ export function App() {
       window.location.replace(original.href);
     }
   }, [state, original]);
+
+  useEffect(() => {
+    if (recordedDistraction.current) {
+      return;
+    }
+    if (!state?.activeSession || state.activeSession.phase !== 'focus') {
+      return;
+    }
+    recordedDistraction.current = true;
+    void sendCommand({
+      type: 'RECORD_DISTRACTION',
+      site: original?.host,
+    });
+  }, [state?.activeSession, original?.host]);
 
   async function handleEnd() {
     const result = await sendCommand({ type: 'END_SESSION' });
@@ -89,9 +105,7 @@ export function App() {
         <div className="blocked-panel stack">
           <h1 className="heading">Session finished</h1>
           <p className="muted">
-            {original
-              ? 'Taking you back…'
-              : 'Your focus session has ended.'}
+            {original ? 'Taking you back…' : 'Your focus session has ended.'}
           </p>
           <Button variant="secondary" onClick={() => void handleClose()}>
             Close tab
@@ -121,33 +135,68 @@ export function App() {
     );
   }
 
-  const remaining = formatClock(getRemainingMs(session, now));
-  const timeLabel =
-    session.status === 'paused' ? `Paused · ${remaining}` : remaining;
+  const remainingMs = getRemainingMs(session, now);
+  const remaining = formatClock(remainingMs);
+  const progressPct =
+    session.plannedMs > 0
+      ? Math.min(100, Math.max(0, ((session.plannedMs - remainingMs) / session.plannedMs) * 100))
+      : 0;
+  const timeLabel = session.status === 'paused' ? remaining : remaining;
 
   return (
     <div className="blocked-shell">
-      <div className="blocked-panel stack">
-        <p className="subheading">
-          You&apos;re currently working on <strong>{session.contextName}</strong>.
-        </p>
-        <h1 className="heading">
-          {original.host} is blocked until your focus session ends.
-        </h1>
-        <p className="ui-clock" style={{ fontSize: '2rem' }}>
-          {timeLabel}
-        </p>
-        <p className="muted">Come back to it after your break.</p>
-        <div className="row">
-          <Button variant="ghost" onClick={() => void handleEnd()}>
-            End session
-          </Button>
-          <Button variant="secondary" onClick={() => void handleClose()}>
-            Close tab
-          </Button>
+      <header className="blocked-topbar">
+        <div className="blocked-topbar-left">
+          <span aria-hidden="true" className="blocked-topbar-logo">
+            <IconShield />
+          </span>
+          <strong>{original.host}</strong>
         </div>
+        <div className="blocked-topbar-right">
+          <span className="blocked-live-dot" aria-hidden="true" />
+          Aegis Guarded
+        </div>
+      </header>
+
+      <main className="blocked-main">
+        <div className="blocked-medallion">
+          <div className="blocked-medallion-aura" aria-hidden="true" />
+          <div className="blocked-medallion-ring">
+            <IconShield />
+          </div>
+          <div className="blocked-medallion-badge">Golden Aegis Active</div>
+        </div>
+
+        <div className="blocked-copy">
+          <h1 className="blocked-title">
+            You&apos;re currently immersed in <strong>{session.contextName}</strong>.
+          </h1>
+          <p className="blocked-lede">
+            <strong>{original.host}</strong> is peacefully paused until your focus window
+            wraps up.
+          </p>
+        </div>
+
+        <div className="blocked-timer-card">
+          <div className="blocked-progress-track" aria-hidden="true">
+            <div className="blocked-progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+          <div className="blocked-timer-meta">
+            <span className="blocked-session-chip">
+              {session.status === 'paused' ? 'Paused' : 'Active Focus Session'}
+            </span>
+          </div>
+          <div className="blocked-countdown">
+            <span className="blocked-countdown-value">{timeLabel}</span>
+            <span className="blocked-countdown-label">remaining</span>
+          </div>
+          <p className="blocked-reassure">
+            Your concentration is valuable and your future self will thank you.
+          </p>
+        </div>
+
         {error ? <p className="error-text">{error}</p> : null}
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,13 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { getTodayStats, getWeekByContext, startOfLocalWeek } from './stats';
+import {
+  formatFocusDelta,
+  formatTargetLabel,
+  getDistractionsBySite,
+  getFocusByTask,
+  getTodayStats,
+  getWeekByContext,
+  getWeekCadence,
+  startOfLocalWeek,
+} from './stats';
 import type { SessionRecord } from './types';
 
 function record(
-  partial: Pick<SessionRecord, 'id' | 'contextId' | 'contextName' | 'focusedMs' | 'endedAt' | 'outcome'>,
+  partial: Pick<
+    SessionRecord,
+    'id' | 'contextId' | 'contextName' | 'focusedMs' | 'endedAt' | 'outcome'
+  > &
+    Partial<
+      Pick<
+        SessionRecord,
+        | 'distractionOverrides'
+        | 'pauseCount'
+        | 'breakCount'
+        | 'breakMs'
+        | 'distractionBySite'
+        | 'taskId'
+        | 'taskTitle'
+      >
+    >,
 ): SessionRecord {
   return {
     plannedMs: partial.focusedMs,
     startedAt: partial.endedAt - partial.focusedMs,
+    distractionOverrides: partial.distractionOverrides ?? 0,
+    pauseCount: partial.pauseCount ?? 0,
+    breakCount: partial.breakCount ?? 0,
+    breakMs: partial.breakMs ?? 0,
+    distractionBySite: partial.distractionBySite ?? {},
+    taskId: partial.taskId ?? null,
+    taskTitle: partial.taskTitle ?? null,
     ...partial,
   };
 }
@@ -106,6 +137,106 @@ describe('stats', () => {
     expect(getWeekByContext(history, now)).toEqual([
       { contextId: 'b', contextName: 'Beta', focusMs: 90 * 60_000 },
       { contextId: 'a', contextName: 'Alpha Renamed', focusMs: 50 * 60_000 },
+    ]);
+  });
+
+  it('builds weekday cadence and site distraction rankings', () => {
+    const now = new Date(2026, 2, 18, 12, 0, 0).getTime(); // Wed
+    const monday = new Date(2026, 2, 16, 10, 0, 0).getTime();
+    const wednesday = new Date(2026, 2, 18, 9, 0, 0).getTime();
+
+    const history = [
+      record({
+        id: '1',
+        contextId: 'a',
+        contextName: 'A',
+        focusedMs: 60 * 60_000,
+        endedAt: monday,
+        outcome: 'completed',
+        distractionBySite: { 'reddit.com': 2 },
+      }),
+      record({
+        id: '2',
+        contextId: 'a',
+        contextName: 'A',
+        focusedMs: 30 * 60_000,
+        endedAt: wednesday,
+        outcome: 'completed',
+        distractionOverrides: 3,
+        distractionBySite: { 'reddit.com': 1, 'youtube.com': 5 },
+      }),
+    ];
+
+    const cadence = getWeekCadence(history, now);
+    expect(cadence[0]).toMatchObject({ label: 'M', focusMs: 60 * 60_000, isToday: false });
+    expect(cadence[2]).toMatchObject({ label: 'W', focusMs: 30 * 60_000, isToday: true });
+
+    expect(getDistractionsBySite(history, monday, monday + 7 * 24 * 60 * 60_000)).toEqual([
+      { site: 'youtube.com', count: 5 },
+      { site: 'reddit.com', count: 3 },
+    ]);
+  });
+
+  it('formats deltas and daily targets', () => {
+    expect(formatFocusDelta(40 * 60_000)).toBe('↑ 40m vs prior');
+    expect(formatFocusDelta(-2 * 60 * 60_000 - 10 * 60_000)).toBe('↓ 2h 10m vs prior');
+    expect(formatFocusDelta(0)).toBe('Same as before');
+    expect(formatTargetLabel(240)).toBe('Target: 4h / day');
+    expect(formatTargetLabel(90)).toBe('Target: 1h 30m / day');
+  });
+
+  it('aggregates focus time by task for a period', () => {
+    const today = new Date(2026, 2, 18, 10, 0, 0).getTime();
+    const yesterday = new Date(2026, 2, 17, 10, 0, 0).getTime();
+    const dayStart = new Date(2026, 2, 18, 0, 0, 0).getTime();
+    const dayEnd = dayStart + 24 * 60 * 60_000;
+
+    const history = [
+      record({
+        id: '1',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 20 * 60_000,
+        endedAt: today,
+        outcome: 'completed',
+        taskId: 't1',
+        taskTitle: 'Draft',
+      }),
+      record({
+        id: '2',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 10 * 60_000,
+        endedAt: today + 60_000,
+        outcome: 'ended_early',
+        taskId: 't1',
+        taskTitle: 'Draft renamed',
+      }),
+      record({
+        id: '3',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 15 * 60_000,
+        endedAt: today + 120_000,
+        outcome: 'completed',
+        taskId: null,
+        taskTitle: null,
+      }),
+      record({
+        id: '4',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 40 * 60_000,
+        endedAt: yesterday,
+        outcome: 'completed',
+        taskId: 't1',
+        taskTitle: 'Draft',
+      }),
+    ];
+
+    expect(getFocusByTask(history, dayStart, dayEnd)).toEqual([
+      { taskId: 't1', taskTitle: 'Draft renamed', focusMs: 30 * 60_000 },
+      { taskId: null, taskTitle: 'Unassigned', focusMs: 15 * 60_000 },
     ]);
   });
 });

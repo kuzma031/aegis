@@ -1,4 +1,3 @@
-import type { SessionRecord } from '@core/types';
 import type { AppState } from '@core/types';
 
 export interface BlockingAdapter {
@@ -13,7 +12,7 @@ export interface AlarmAdapter {
 }
 
 export interface NotificationAdapter {
-  showSessionComplete(record: SessionRecord): Promise<void>;
+  show(title: string, message: string): Promise<void>;
   clear(): Promise<void>;
 }
 

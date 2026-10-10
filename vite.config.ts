@@ -1,11 +1,40 @@
-import { defineConfig } from 'vite';
+import { defineConfig, build as viteBuild } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
 const root = import.meta.dirname;
+const contentEntry = resolve(root, 'src/content/taskRail.ts');
+const contentStyles = resolve(root, 'src/content/taskRailStyles.ts');
+const contentConfigFile = resolve(root, 'vite.content.config.ts');
+
+/** After the main extension bundle, rebuild content.js (survives emptyOutDir + watch). */
+function buildContentScriptPlugin() {
+  let buildingContent = false;
+
+  return {
+    name: 'build-content-script',
+    buildStart() {
+      this.addWatchFile(contentEntry);
+      this.addWatchFile(contentStyles);
+    },
+    async closeBundle() {
+      if (buildingContent) {
+        return;
+      }
+      buildingContent = true;
+      try {
+        await viteBuild({
+          configFile: contentConfigFile,
+        });
+      } finally {
+        buildingContent = false;
+      }
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), buildContentScriptPlugin()],
   base: './',
   resolve: {
     alias: {
@@ -21,6 +50,7 @@ export default defineConfig({
       input: {
         popup: resolve(root, 'popup.html'),
         blocked: resolve(root, 'blocked.html'),
+        sidepanel: resolve(root, 'sidepanel.html'),
         background: resolve(root, 'src/background/index.ts'),
       },
       output: {

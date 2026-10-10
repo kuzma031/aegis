@@ -42,7 +42,7 @@ describe('sitesToBlock', () => {
     let state = createInitialState(NOW);
     expect(sitesToBlock(state)).toEqual([]);
 
-    const started = startSession(state, DEVELOPMENT_CONTEXT_ID, 25, NOW);
+    const started = startSession(state, DEVELOPMENT_CONTEXT_ID, 25, 5, false, NOW);
     expect(started.ok).toBe(true);
     if (!started.ok) return;
     state = started.value;
@@ -63,6 +63,49 @@ describe('sitesToBlock', () => {
     if (!ended.ok) return;
     expect(sitesToBlock(ended.value)).toEqual([]);
   });
+
+  it('keeps sites blocked during break when blockDuringBreak is on', () => {
+    let state = createInitialState(NOW);
+    const started = startSession(state, DEVELOPMENT_CONTEXT_ID, 25, 5, false, NOW);
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    state = {
+      ...started.value,
+      activeSession: {
+        ...started.value.activeSession!,
+        phase: 'break',
+      },
+    };
+    expect(sitesToBlock(state)).toEqual([
+      'reddit.com',
+      'youtube.com',
+      'instagram.com',
+      'x.com',
+    ]);
+  });
+
+  it('allows sites during break when blockDuringBreak is off', () => {
+    let state = createInitialState(NOW);
+    state = {
+      ...state,
+      contexts: state.contexts.map((context) =>
+        context.id === DEVELOPMENT_CONTEXT_ID
+          ? { ...context, blockDuringBreak: false }
+          : context,
+      ),
+    };
+    const started = startSession(state, DEVELOPMENT_CONTEXT_ID, 25, 5, false, NOW);
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    state = {
+      ...started.value,
+      activeSession: {
+        ...started.value.activeSession!,
+        phase: 'break',
+      },
+    };
+    expect(sitesToBlock(state)).toEqual([]);
+  });
 });
 
 describe('BlockingSync', () => {
@@ -74,6 +117,8 @@ describe('BlockingSync', () => {
       createInitialState(NOW),
       DEVELOPMENT_CONTEXT_ID,
       25,
+      5,
+      false,
       NOW,
     );
     if (!started.ok) {

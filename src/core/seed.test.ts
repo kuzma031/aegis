@@ -5,7 +5,6 @@ import {
   DEVELOPMENT_CONTEXT_ID,
   RESEARCH_CONTEXT_ID,
 } from './seed';
-import { SCHEMA_VERSION } from './types';
 
 describe('ids', () => {
   it('returns a UUID string', () => {
@@ -21,12 +20,19 @@ describe('seed', () => {
     const now = 1_700_000_000_000;
     const state = createInitialState(now);
 
-    expect(state.schemaVersion).toBe(SCHEMA_VERSION);
     expect(state.contexts).toEqual([
       {
         id: DEVELOPMENT_CONTEXT_ID,
         name: 'Development',
         sites: ['reddit.com', 'youtube.com', 'instagram.com', 'x.com'],
+        defaultFocusMinutes: 25,
+        defaultBreakMinutes: 5,
+        autoRepeat: true,
+        blockDuringBreak: true,
+        longBreaksEnabled: false,
+        longBreakAfterSessions: 4,
+        longBreakMinutes: 15,
+        dailyGoalMinutes: 240,
         createdAt: now,
         updatedAt: now,
       },
@@ -34,6 +40,14 @@ describe('seed', () => {
         id: RESEARCH_CONTEXT_ID,
         name: 'Research',
         sites: ['instagram.com', 'tiktok.com'],
+        defaultFocusMinutes: 50,
+        defaultBreakMinutes: 10,
+        autoRepeat: true,
+        blockDuringBreak: true,
+        longBreaksEnabled: false,
+        longBreakAfterSessions: 4,
+        longBreakMinutes: 15,
+        dailyGoalMinutes: 240,
         createdAt: now,
         updatedAt: now,
       },
@@ -41,9 +55,17 @@ describe('seed', () => {
     expect(state.settings).toEqual({
       selectedContextId: DEVELOPMENT_CONTEXT_ID,
       lastDurationMinutes: 25,
+      lastBreakMinutes: 5,
+      lastRepeat: false,
+      dailyFocusTargetMinutes: 240,
+      taskPresentation: 'hover',
+      completionSoundId: 'freesound-bell',
+      ambientEnabled: false,
+      ambientTrackId: 'brown-noise',
     });
+    expect(state.tasks).toEqual([]);
     expect(state.activeSession).toBeNull();
-    expect(state.lastCompletion).toBeNull();
+    expect(state.lastSessionSummary).toBeNull();
     expect(state.history).toEqual([]);
   });
 });

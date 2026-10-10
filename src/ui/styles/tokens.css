@@ -1,36 +1,65 @@
 :root {
-  --color-bg: #f4f5f3;
+  /* Surfaces — warm alabaster / parchment */
+  --color-bg: #fbf9f6;
+  --color-bg-warm: #faf7f2;
   --color-surface: #ffffff;
-  --color-text: #1f2a24;
-  --color-text-muted: #5c6b63;
-  --color-border: #d7ddd8;
-  --color-accent: #3d6b5a;
-  --color-accent-hover: #335849;
-  --color-accent-soft: #e4efe9;
-  --color-danger-text: #5c6b63;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+  --color-surface-low: #f5efe6;
+  --color-surface-inset: #f3ede3;
+  --color-banner: rgba(255, 251, 235, 0.7);
+
+  /* Text */
+  --color-text: #0f172a;
+  --color-text-strong: #1e293b;
+  --color-text-muted: #64748b;
+  --color-text-faint: #94a3b8;
+
+  /* Amber / gold primary (popup mock + DESIGN.md prose) */
+  --color-primary: #b45309;
+  --color-primary-hover: #92400e;
+  --color-primary-bright: #d97706;
+  --color-primary-soft: #fef3c7;
+  --color-primary-tint: #fffbeb;
+  --color-primary-border: #fde68a;
+  --color-on-primary: #ffffff;
+
+  /* Slate secondary */
+  --color-secondary: #1e293b;
+  --color-secondary-hover: #0f172a;
+  --color-on-secondary: #faf8f5;
+
+  /* Borders & strokes */
+  --color-border: #eee5d8;
+  --color-border-strong: #e5dcce;
+  --color-border-header: #f3ece2;
+  --color-border-nav: #f1e8dd;
+  --color-ring-track: #f3ede3;
+
+  /* Feedback */
+  --color-success: #047857;
+  --color-danger: #ba1a1a;
+  --color-danger-soft: #ffdad6;
+  --color-danger-text: #93000a;
+
+  /* Typography — popup screens as source of truth */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radii */
   --radius-sm: 6px;
   --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --shadow-soft: 0 1px 2px rgba(31, 42, 36, 0.06);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #151a17;
-    --color-surface: #1e2621;
-    --color-text: #e8eee9;
-    --color-text-muted: #9aaca1;
-    --color-border: #2f3b34;
-    --color-accent: #7fa894;
-    --color-accent-hover: #95bba8;
-    --color-accent-soft: #24312a;
-    --color-danger-text: #b7c4bc;
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35);
-  }
+  /* Elevation */
+  --shadow-soft: 0 1px 3px rgba(87, 83, 78, 0.04), 0 2px 6px -1px rgba(87, 83, 78, 0.06);
+  --shadow-primary: 0 4px 12px rgba(180, 83, 9, 0.24);
+  --shadow-nav-dot: 0 0 0 1px rgba(180, 83, 9, 0.1);
 }

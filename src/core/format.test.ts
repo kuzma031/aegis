@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatBadgeText, formatClock, formatDuration } from './format';
+import { formatBadgeText, formatClock, formatDuration, formatMinutesPhrase } from './format';
 
 describe('formatClock', () => {
   it('formats under and over one hour', () => {
@@ -10,10 +10,19 @@ describe('formatClock', () => {
 });
 
 describe('formatDuration', () => {
-  it('formats whole minutes and hours', () => {
+  it('formats seconds, minutes, and hours', () => {
+    expect(formatDuration(45_000)).toBe('45s');
     expect(formatDuration(45 * 60_000)).toBe('45m');
     expect(formatDuration(120 * 60_000)).toBe('2h');
     expect(formatDuration(155 * 60_000 + 59_000)).toBe('2h 35m');
+  });
+});
+
+describe('formatMinutesPhrase', () => {
+  it('formats minutes and sub-minute lengths', () => {
+    expect(formatMinutesPhrase(50)).toBe('50 minutes');
+    expect(formatMinutesPhrase(1)).toBe('1 minute');
+    expect(formatMinutesPhrase(0.5)).toBe('30 seconds');
   });
 });
 

@@ -4,7 +4,10 @@ import type { AppState } from '@core/types';
 import type { ActionBadgeAdapter } from './interfaces';
 
 const DEFAULT_TITLE = 'Aegis';
-const BADGE_COLOR = '#3d6b5a';
+/** Matches UI `--color-primary` (amber). Chrome badges cannot use CSS vars. */
+const BADGE_BACKGROUND = '#b45309';
+/** Matches UI `--color-on-primary`. */
+const BADGE_TEXT = '#ffffff';
 
 export function createActionBadgeAdapter(): ActionBadgeAdapter {
   return {
@@ -20,11 +23,13 @@ export function createActionBadgeAdapter(): ActionBadgeAdapter {
       const paused = session.status === 'paused';
       const badge = formatBadgeText(remainingMs, paused);
       const clock = formatClock(remainingMs);
+      const phaseLabel = session.phase === 'break' ? 'Break' : 'Focus';
       const title = paused
-        ? `Aegis · Paused · ${clock} left`
-        : `Aegis · ${clock} remaining`;
+        ? `Aegis · ${phaseLabel} paused · ${clock} left`
+        : `Aegis · ${phaseLabel} · ${clock} remaining`;
 
-      await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
+      await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND });
+      await chrome.action.setBadgeTextColor({ color: BADGE_TEXT });
       await chrome.action.setBadgeText({ text: badge });
       await chrome.action.setTitle({ title });
     },

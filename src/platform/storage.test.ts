@@ -4,7 +4,7 @@ import {
   DEVELOPMENT_CONTEXT_ID,
 } from '@core/seed';
 import { createSystemClock } from './clock';
-import { CURRENT_SCHEMA_VERSION, migrate } from './migrations';
+import { migrate } from './migrations';
 import { MemoryStateRepository } from './storage';
 
 describe('migrate', () => {
@@ -12,20 +12,156 @@ describe('migrate', () => {
     const now = 1_700_000_000_000;
     const state = migrate(null, now);
     expect(state).toEqual(createInitialState(now));
-    expect(state.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(state.settings.selectedContextId).toBe(DEVELOPMENT_CONTEXT_ID);
   });
 
-  it('returns version 1 state as-is', () => {
+  it('fills missing settings fields on stored state', () => {
     const now = 1_700_000_000_000;
     const seeded = createInitialState(now);
-    expect(migrate(seeded, now + 1)).toBe(seeded);
+    expect(migrate(seeded, now + 1)).toEqual(seeded);
+
+    const partial = {
+      contexts: seeded.contexts,
+      settings: {
+        selectedContextId: seeded.settings.selectedContextId,
+        lastDurationMinutes: 25,
+      },
+      lastCompletion: {
+        record: {
+          id: 'old',
+          contextId: DEVELOPMENT_CONTEXT_ID,
+          contextName: 'Development',
+          plannedMs: 1000,
+          focusedMs: 1000,
+          startedAt: now,
+          endedAt: now + 1000,
+          outcome: 'completed' as const,
+        },
+      },
+    };
+    const migrated = migrate(partial, now + 1);
+    expect(migrated.settings.lastBreakMinutes).toBe(5);
+    expect(migrated.settings.lastRepeat).toBe(false);
+    expect(migrated.lastSessionSummary).toBeNull();
   });
 
-  it('reseeds unknown schema versions', () => {
+  it('adds default focus/break minutes to legacy contexts', () => {
     const now = 1_700_000_000_000;
-    const state = migrate({ schemaVersion: 999 }, now);
-    expect(state).toEqual(createInitialState(now));
+    const seeded = createInitialState(now);
+    const legacyContexts = seeded.contexts.map((context) => ({
+      id: context.id,
+      name: context.name,
+      sites: context.sites,
+      createdAt: context.createdAt,
+      updatedAt: context.updatedAt,
+    }));
+    const migrated = migrate(
+      {
+        contexts: legacyContexts,
+        settings: seeded.settings,
+      },
+      now + 1,
+    );
+    expect(migrated.contexts.every((context) => context.defaultFocusMinutes === 25)).toBe(
+      true,
+    );
+    expect(migrated.contexts.every((context) => context.defaultBreakMinutes === 5)).toBe(
+      true,
+    );
+    expect(
+      migrated.contexts.every((context) => context.longBreakAfterSessions === 4),
+    ).toBe(true);
+    expect(migrated.contexts.every((context) => context.longBreakMinutes === 15)).toBe(
+      true,
+    );
+    expect(migrated.contexts.every((context) => context.longBreaksEnabled === false)).toBe(
+      true,
+    );
+  });
+
+  it('defaults missing tasks to an empty list', () => {
+    const now = 1_700_000_000_000;
+    const seeded = createInitialState(now);
+    const { tasks: _tasks, ...withoutTasks } = seeded;
+    const migrated = migrate(withoutTasks, now + 1);
+    expect(migrated.tasks).toEqual([]);
+  });
+
+  it('defaults missing taskPresentation to hover', () => {
+    const now = 1_700_000_000_000;
+    const seeded = createInitialState(now);
+    const migrated = migrate(
+      {
+        contexts: seeded.contexts,
+        settings: {
+          selectedContextId: seeded.settings.selectedContextId,
+          lastDurationMinutes: 25,
+          lastBreakMinutes: 5,
+          lastRepeat: false,
+          dailyFocusTargetMinutes: 240,
+        },
+      },
+      now + 1,
+    );
+    expect(migrated.settings.taskPresentation).toBe('hover');
+    expect(migrated.settings.ambientEnabled).toBe(false);
+    expect(migrated.settings.ambientTrackId).toBe('brown-noise');
+  });
+
+  it('defaults missing task focusedMs and session taskFocus fields', () => {
+    const now = 1_700_000_000_000;
+    const seeded = createInitialState(now);
+    const migrated = migrate(
+      {
+        contexts: seeded.contexts,
+        settings: seeded.settings,
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'Legacy task',
+            status: 'todo',
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        activeSession: {
+          id: 'sess-1',
+          contextId: DEVELOPMENT_CONTEXT_ID,
+          contextName: 'Development',
+          phase: 'focus',
+          focusMinutes: 25,
+          breakMinutes: 5,
+          plannedMs: 25 * 60_000,
+          startedAt: now,
+          status: 'running',
+          endsAt: now + 25 * 60_000,
+          remainingMs: null,
+        },
+        history: [
+          {
+            id: 'rec-1',
+            contextId: DEVELOPMENT_CONTEXT_ID,
+            contextName: 'Development',
+            plannedMs: 1000,
+            focusedMs: 1000,
+            startedAt: now,
+            endedAt: now + 1000,
+            outcome: 'completed',
+          },
+        ],
+      },
+      now + 1,
+    );
+
+    expect(migrated.tasks[0]).toMatchObject({
+      id: 'task-1',
+      focusedMs: 0,
+    });
+    expect(migrated.activeSession?.taskFocus).toBeNull();
+    expect(migrated.history[0]).toMatchObject({
+      taskId: null,
+      taskTitle: null,
+    });
   });
 });
 

@@ -1,0 +1,287 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_blank" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"tertiary-fixed":"#ffdcc3","tertiary-container":"#a95b00","on-primary":"#ffffff","primary-fixed-dim":"#ffb68e","background":"#fbf9f6","on-secondary-fixed":"#0d1c2f","primary":"#903f00","on-surface":"#1b1c1a","primary-fixed":"#ffdbca","surface-bright":"#fbf9f6","error":"#ba1a1a","on-secondary":"#ffffff","surface-container-low":"#f5f3f0","on-primary-fixed-variant":"#763300","on-surface-variant":"#564338","on-secondary-container":"#57657b","on-tertiary-container":"#fff1e9","surface-variant":"#e4e2df","on-tertiary-fixed-variant":"#6e3900","on-secondary-fixed-variant":"#3a485c","surface-container-highest":"#e4e2df","surface-dim":"#dbdad7","secondary-fixed":"#d5e3fd","tertiary":"#854600","secondary":"#515f74","inverse-primary":"#ffb68e","surface-tint":"#9b4500","on-error":"#ffffff","outline-variant":"#ddc1b3","inverse-surface":"#30312f","surface-container":"#efeeeb","secondary-fixed-dim":"#b9c7e0","surface-container-high":"#eae8e5","inverse-on-surface":"#f2f0ed","on-primary-container":"#fff1eb","on-background":"#1b1c1a","secondary-container":"#d5e3fd","error-container":"#ffdad6","on-tertiary":"#ffffff","on-tertiary-fixed":"#2f1500","surface-container-lowest":"#ffffff","primary-container":"#b45309","outline":"#897267","tertiary-fixed-dim":"#ffb77d","on-error-container":"#93000a","on-primary-fixed":"#331200","surface":"#fbf9f6"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-md":"0.75rem","gutter":"0.75rem","margin":"1rem","space-sm":"0.5rem","space-xl":"1.5rem","space-xs":"0.25rem","space-lg":"1rem"},fontFamily:{"timer-display":["Inter"],"body-sm":["Inter"],"body-md":["Inter"],"label-sm":["Inter"],"headline-xl":["Inter"],"body-lg":["Inter"],"headline-md":["Inter"],"headline-sm":["Inter"],"headline-lg":["Inter"],"label-md":["Inter"]},fontSize:{"timer-display":["48px",{lineHeight:"52px",letterSpacing:"-0.03em",fontWeight:"500"}],"body-sm":["12px",{lineHeight:"16px",fontWeight:"400"}],"body-md":["14px",{lineHeight:"20px",fontWeight:"400"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"600"}],"headline-xl":["32px",{lineHeight:"38px",letterSpacing:"-0.02em",fontWeight:"600"}],"body-lg":["16px",{lineHeight:"24px",fontWeight:"400"}],"headline-md":["20px",{lineHeight:"26px",letterSpacing:"-0.01em",fontWeight:"600"}],"headline-sm":["16px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"600"}],"headline-lg":["24px",{lineHeight:"30px",letterSpacing:"-0.015em",fontWeight:"600"}],"label-md":["13px",{lineHeight:"16px",letterSpacing:"0.01em",fontWeight:"500"}]}}}};</script></head><body class="min-h-screen bg-background text-on-surface flex items-center justify-center p-margin"><main class="w-full max-w-[380px] bg-surface-container-lowest rounded-xl shadow-[0_16px_32px_-6px_rgba(30,41,59,0.12),0_6px_12px_-3px_rgba(30,41,59,0.06)] overflow-hidden"><div class="flex flex-col w-full text-on-surface select-none">
+    <!-- Top Bar / Header -->
+    <header class="relative px-space-lg pt-space-lg pb-space-md bg-surface-container-lowest shadow-sm flex items-center justify-between">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <button aria-label="Navigate Back" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-tertiary-fixed transition-colors" type="button">
+    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+    </button>
+    <div class="flex flex-col min-w-0">
+    <h1 class="font-headline-sm text-headline-sm text-on-surface leading-tight tracking-tight truncate">Edit Context</h1>
+    <p class="font-body-sm text-body-sm text-on-surface-variant truncate">Configure shield rules and domain list</p>
+    </div>
+    </div>
+    <div class="flex items-center gap-space-xs">
+    <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse" title="Shield Synced"></span>
+    <button aria-label="Close" class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
+    <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
+    </div>
+    </header>
+    <!-- Scrollable Form Body -->
+    <div class="flex flex-col gap-space-lg p-space-lg max-h-[480px] overflow-y-auto" style="scrollbar-width: thin;">
+    <!-- Context Details Section -->
+    <section class="flex flex-col gap-space-md bg-surface-container-low p-space-md rounded-xl shadow-sm">
+    <div class="flex items-center justify-between">
+    <span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Identity &amp; Scope</span>
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-fixed text-tertiary font-label-sm text-label-sm">
+    <span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+              Active Context
+            </span>
+    </div>
+    <!-- Context Name Field -->
+    <div class="flex flex-col gap-1">
+    <label class="font-label-md text-label-md text-on-surface font-medium" for="context-title">Context Name</label>
+    <div class="relative">
+    <input class="w-full px-space-md py-space-sm bg-surface-container-lowest text-on-surface font-headline-sm text-headline-sm rounded-lg shadow-sm focus:outline-none focus:bg-surface-container-lowest transition-all" id="context-title" placeholder="e.g. Deep Work" type="text" value="Development">
+    </div>
+    </div>
+    <!-- Context Description / Intent -->
+    
+    <!-- Duration Preset Chips -->
+    <div class="flex flex-col gap-1.5 pt-1">
+    <span class="font-label-sm text-label-sm text-on-surface-variant">Default Session Duration</span>
+    <div class="grid grid-cols-4 gap-1.5" id="duration-chips">
+    <button class="py-1 px-2 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors text-center" data-val="15" type="button">15 min</button>
+    <button class="py-1 px-2 rounded-full font-label-sm text-label-sm bg-primary-container text-on-primary font-semibold shadow-sm transition-transform active:scale-95 text-center" data-val="25" type="button">25 min</button>
+    <button class="py-1 px-2 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors text-center" data-val="45" type="button">45 min</button>
+    <button class="py-1 px-2 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors text-center" data-val="60" type="button">60 min</button>
+    </div>
+    </div>
+    </section>
+    <!-- Shielded Domains Section -->
+    <section class="flex flex-col gap-space-sm">
+    <div class="flex items-center justify-between">
+    <div class="flex items-center gap-space-xs">
+    <span class="font-headline-sm text-headline-sm text-on-surface">Blocked Websites</span>
+    <span class="px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold" id="domain-count">14 sites</span>
+    </div>
+    <span class="material-symbols-outlined text-primary text-[18px]" title="Warded Sanctuary">policy</span>
+    </div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant -mt-1">These domains will be warded during active sessions.</p>
+    <!-- URL Add Input -->
+    <div class="flex items-center gap-space-xs mt-1">
+    <div class="relative flex-1">
+    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">language</span>
+    <input class="w-full pl-8 pr- space-sm py-space-xs bg-surface-container-low text-on-surface font-body-sm text-body-sm rounded-lg shadow-sm placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest transition-all" id="url-input" placeholder="e.g., twitter.com, reddit.com..." type="text">
+    </div>
+    <button class="inline-flex items-center justify-center gap-1 px-space-md py-space-xs rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-semibold shadow-sm hover:bg-primary-container active:scale-95 transition-all" id="add-url-btn" type="button">
+    <span class="material-symbols-outlined text-[14px]">add</span>
+              Add
+            </button>
+    </div>
+    <!-- Domain Stack List -->
+    <div class="flex flex-col gap-1.5 mt-1" id="domain-list">
+    <!-- reddit.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">public</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">reddit.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Social Aggregator • Full domain</span>
+    </div>
+    </div>
+    <button aria-label="Remove reddit.com" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    <!-- youtube.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">smart_display</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">youtube.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Streaming Media • Feeds &amp; Shorts</span>
+    </div>
+    </div>
+    <button aria-label="Remove youtube.com" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    <!-- twitter.com / x.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">tag</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">twitter.com / x.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Microblogging • Timelines</span>
+    </div>
+    </div>
+    <button aria-label="Remove twitter.com" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    <!-- instagram.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">photo_camera</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">instagram.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Photo &amp; Reel Streams</span>
+    </div>
+    </div>
+    <button aria-label="Remove instagram.com" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    <!-- news.ycombinator.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">feed</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">news.ycombinator.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Aggregator • Discussion threads</span>
+    </div>
+    </div>
+    <button aria-label="Remove hacker news" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    <!-- tiktok.com -->
+    <div class="group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow">
+    <div class="flex items-center gap-space-sm min-w-0">
+    <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+    <span class="material-symbols-outlined text-[14px] text-primary">audiotrack</span>
+    </div>
+    <div class="flex flex-col min-w-0">
+    <span class="font-label-md text-label-md text-on-surface font-medium truncate">tiktok.com</span>
+    <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Short-form Video</span>
+    </div>
+    </div>
+    <button aria-label="Remove tiktok.com" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors" type="button">
+    <span class="material-symbols-outlined text-[15px]">close</span>
+    </button>
+    </div>
+    </div>
+    </section>
+    <!-- Danger Zone / Delete Context -->
+    <section class="mt- space-xs pt-space-xs">
+    <div class="p-space-md bg-surface-container-low rounded-xl flex items-start gap-space-sm transition-all hover:bg-surface-container">
+    <div class="w-7 h-7 rounded-full bg-error-container flex items-center justify-center shrink-0 mt-0.5">
+    <span class="material-symbols-outlined text-error text-[16px]">delete_outline</span>
+    </div>
+    <div class="flex flex-col min-w-0 flex-1">
+    <span class="font-label-md text-label-md text-error font-semibold">Delete Context</span>
+    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+                Permanently remove this preset and its 14 blocked domain rules.
+              </p>
+    <button class="self-start mt-2 px-space-md py-1 rounded-full bg-surface-container-highest text-error font-label-sm text-label-sm font-semibold hover:bg-error hover:text-on-error transition-all" id="delete-context-btn" type="button">
+                Delete This Context
+              </button>
+    </div>
+    </div>
+    </section>
+    </div>
+    <!-- Bottom Actions Bar -->
+    <footer class="p-space-md bg-surface-container-lowest shadow-[0_-4px_16px_rgba(0,0,0,0.03)] flex items-center gap-space-sm">
+    <button class="flex-1 py-space-sm px-space-md rounded-full bg-surface-container text-on-surface font-label-md text-label-md font-medium text-center hover:bg-surface-container-high transition-colors" id="cancel-btn" type="button">
+          Cancel
+        </button>
+    <button class="flex-1 py-space-sm px-space-md rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-semibold text-center shadow-md hover:bg-primary active:scale-98 transition-all flex items-center justify-center gap-1.5" id="save-btn" type="button">
+    <span class="material-symbols-outlined text-[16px]">check</span>
+          Save Changes
+        </button>
+    </footer>
+    <script>
+        // Duration Chips Active Selection
+        const durationChips = document.querySelectorAll('#duration-chips button');
+        durationChips.forEach(chip => {
+          chip.addEventListener('click', () => {
+            durationChips.forEach(c => {
+              c.classList.remove('bg-primary-container', 'text-on-primary', 'font-semibold', 'shadow-sm');
+              c.classList.add('bg-surface-container', 'text-on-surface-variant');
+            });
+            chip.classList.add('bg-primary-container', 'text-on-primary', 'font-semibold', 'shadow-sm');
+            chip.classList.remove('bg-surface-container', 'text-on-surface-variant');
+          });
+        });
+    
+        // Domain list deletion simulation
+        const domainList = document.getElementById('domain-list');
+        const domainCount = document.getElementById('domain-count');
+        
+        domainList.addEventListener('click', (e) => {
+          const delBtn = e.target.closest('.delete-btn');
+          if (delBtn) {
+            const item = delBtn.closest('.group');
+            if (item) {
+              item.style.opacity = '0';
+              item.style.transform = 'translateX(8px)';
+              item.style.transition = 'all 180ms ease';
+              setTimeout(() => {
+                item.remove();
+                const currentCount = domainList.children.length;
+                domainCount.textContent = `${currentCount} sites`;
+              }, 180);
+            }
+          }
+        });
+    
+        // Add Domain handler
+        const urlInput = document.getElementById('url-input');
+        const addUrlBtn = document.getElementById('add-url-btn');
+    
+        function addDomain() {
+          const val = urlInput.value.trim().toLowerCase();
+          if (!val) return;
+          
+          const cleanVal = val.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0];
+          if (!cleanVal) return;
+    
+          const row = document.createElement('div');
+          row.className = 'group flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg shadow-sm hover:shadow transition-shadow';
+          row.innerHTML = `
+            <div class="flex items-center gap-space-sm min-w-0">
+              <div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[14px] text-primary">public</span>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="font-label-md text-label-md text-on-surface font-medium truncate">${cleanVal}</span>
+                <span class="font-body-sm text-[10px] leading-tight text-on-surface-variant">Custom rule • Full domain</span>
+              </div>
+            </div>
+            <button type="button" aria-label="Remove ${cleanVal}" class="delete-btn w-6 h-6 rounded-full flex items-center justify-center text-outline hover:text-error hover:bg-error-container transition-colors">
+              <span class="material-symbols-outlined text-[15px]">close</span>
+            </button>
+          `;
+    
+          domainList.prepend(row);
+          urlInput.value = '';
+          const currentCount = domainList.children.length;
+          domainCount.textContent = `${currentCount} sites`;
+        }
+    
+        addUrlBtn.addEventListener('click', addDomain);
+        urlInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addDomain();
+          }
+        });
+    
+        // Quick notification on Save
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.addEventListener('click', () => {
+          const orig = saveBtn.innerHTML;
+          saveBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">done_all</span> Preserved';
+          saveBtn.classList.add('bg-tertiary-container');
+          setTimeout(() => {
+            saveBtn.innerHTML = orig;
+            saveBtn.classList.remove('bg-tertiary-container');
+          }, 1400);
+        });
+      </script>
+    </div></main>
+    
+    </body></html>

@@ -8,13 +8,21 @@ import {
 import type { BlockingAdapter, TabsAdapter } from '@platform/interfaces';
 
 export function sitesToBlock(state: AppState): string[] {
-  if (!state.activeSession) {
+  const session = state.activeSession;
+  if (!session) {
     return [];
   }
-  const context = state.contexts.find(
-    (item) => item.id === state.activeSession?.contextId,
-  );
-  return context?.sites ?? [];
+  const context = state.contexts.find((item) => item.id === session.contextId);
+  if (!context) {
+    return [];
+  }
+  if (session.phase === 'focus') {
+    return context.sites;
+  }
+  if (session.phase === 'break' && context.blockDuringBreak) {
+    return context.sites;
+  }
+  return [];
 }
 
 export function sitesKey(sites: string[]): string {

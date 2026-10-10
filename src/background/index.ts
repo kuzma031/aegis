@@ -14,6 +14,8 @@ import {
   createNotificationAdapter,
   SESSION_COMPLETE_NOTIFICATION_ID,
 } from '@platform/notifications';
+import { syncAmbientAudio } from '@platform/ambientSound';
+import { syncSidePanelFromState } from '@platform/sidePanel';
 import { ChromeStateRepository } from '@platform/storage';
 import { createTabsAdapter } from '@platform/tabs';
 
@@ -39,20 +41,29 @@ const controller = new SessionController(
 
 console.log('[focus] worker started');
 
-void controller.reconcile().catch((error: unknown) => {
-  console.error('[focus] reconcile failed', error);
-});
+function bootSession(): void {
+  void (async () => {
+    try {
+      await controller.reconcile();
+    } catch (error: unknown) {
+      console.error('[focus] reconcile failed', error);
+    }
+    try {
+      await syncAmbientAudio(await repo.load());
+    } catch (error: unknown) {
+      console.error('[focus] ambient sync failed', error);
+    }
+  })();
+}
+
+bootSession();
 
 chrome.runtime.onInstalled.addListener(() => {
-  void controller.reconcile().catch((error: unknown) => {
-    console.error('[focus] onInstalled reconcile failed', error);
-  });
+  bootSession();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void controller.reconcile().catch((error: unknown) => {
-    console.error('[focus] onStartup reconcile failed', error);
-  });
+  bootSession();
 });
 
 repo.subscribe((state) => {
@@ -62,16 +73,28 @@ repo.subscribe((state) => {
   void badge.sync(state, clock.now()).catch((error: unknown) => {
     console.error('[focus] storage badge sync failed', error);
   });
+  void syncSidePanelFromState(state).catch((error: unknown) => {
+    console.error('[focus] side panel sync failed', error);
+  });
+  void syncAmbientAudio(state).catch((error: unknown) => {
+    console.error('[focus] ambient sync failed', error);
+  });
 });
 
+void repo
+  .load()
+  .then((state) => syncSidePanelFromState(state))
+  .catch((error: unknown) => {
+    console.error('[focus] initial side panel sync failed', error);
+  });
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  // Ignore non-commands (e.g. offscreen PLAY_COMPLETION_SOUND) so other listeners can handle them.
+  if (!isCommand(message)) {
+    return false;
+  }
   void (async () => {
     try {
-      if (!isCommand(message)) {
-        const response: VoidResult = { ok: false, error: 'Unknown command' };
-        sendResponse(response);
-        return;
-      }
       const response = await controller.handleCommand(message as Command);
       sendResponse(response);
     } catch (error: unknown) {
@@ -88,9 +111,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === BADGE_TICK_ALARM) {
-    void controller.handleBadgeTick().catch((error: unknown) => {
-      console.error('[focus] badge tick failed', error);
-    });
+    void (async () => {
+      try {
+        await controller.handleBadgeTick();
+      } catch (error: unknown) {
+        console.error('[focus] badge tick failed', error);
+      }
+      try {
+        await syncAmbientAudio(await repo.load());
+      } catch (error: unknown) {
+        console.error('[focus] ambient sync failed', error);
+      }
+    })();
     return;
   }
   if (alarm.name !== SESSION_END_ALARM) {

@@ -9,7 +9,7 @@ import type {
   NotificationAdapter,
 } from '@platform/interfaces';
 import { MemoryStateRepository } from '@platform/storage';
-import type { AppState, SessionRecord } from '@core/types';
+import type { AppState } from '@core/types';
 
 class FakeClock implements Clock {
   current: number;
@@ -47,10 +47,10 @@ function createFakes(now: number) {
       badgeTick = false;
     },
   };
-  const notificationsShown: SessionRecord[] = [];
+  const notificationsShown: Array<{ title: string; message: string }> = [];
   const notifications: NotificationAdapter = {
-    async showSessionComplete(record) {
-      notificationsShown.push(record);
+    async show(title, message) {
+      notificationsShown.push({ title, message });
     },
     async clear() {
       notificationsShown.length = 0;
@@ -96,21 +96,32 @@ function createFakes(now: number) {
   };
 }
 
+function startCmd(
+  durationMinutes = 25,
+  breakMinutes = 5,
+  repeat = false,
+) {
+  return {
+    type: 'START_SESSION' as const,
+    contextId: DEVELOPMENT_CONTEXT_ID,
+    durationMinutes,
+    breakMinutes,
+    repeat,
+  };
+}
+
 describe('SessionController', () => {
   const NOW = 1_700_000_000_000;
 
-  it('starts, pauses, resumes, and completes a session', async () => {
-    const { clock, repo, controller, scheduled, notificationsShown, isBadgeTickOn } =
+  it('starts, pauses, resumes, then enters break after focus', async () => {
+    const { clock, repo, controller, scheduled, notificationsShown, isBadgeTickOn, synced } =
       createFakes(NOW);
 
-    const started = await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 25,
-    });
+    const started = await controller.handleCommand(startCmd());
     expect(started).toEqual({ ok: true });
     expect(scheduled).toEqual([NOW + 25 * 60_000]);
     expect(isBadgeTickOn()).toBe(true);
+    expect(synced.at(-1)?.length).toBeGreaterThan(0);
 
     clock.advance(5 * 60_000);
     expect(await controller.handleCommand({ type: 'PAUSE_SESSION' })).toEqual({
@@ -130,41 +141,89 @@ describe('SessionController', () => {
     await controller.handleAlarm();
 
     const state = await repo.load();
-    expect(state.activeSession).toBeNull();
-    expect(state.lastCompletion?.record.outcome).toBe('completed');
+    expect(state.activeSession?.phase).toBe('break');
+    expect(state.lastSessionSummary).toBeNull();
     expect(state.history).toHaveLength(1);
     expect(notificationsShown).toHaveLength(1);
-    expect(scheduled).toEqual([]);
-    expect(isBadgeTickOn()).toBe(false);
+    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
+    expect(synced.at(-1)?.length).toBeGreaterThan(0);
+    expect(isBadgeTickOn()).toBe(true);
   });
 
-  it('reconciles an expired running session after the worker was asleep', async () => {
+  it('clears session after break when repeat is off', async () => {
     const { clock, repo, controller, notificationsShown, scheduled } = createFakes(NOW);
 
-    await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 10,
-    });
+    await controller.handleCommand(startCmd(10, 5, false));
+    clock.advance(10 * 60_000);
+    await controller.handleAlarm();
 
+    let state = await repo.load();
+    expect(state.activeSession?.phase).toBe('break');
+
+    clock.advance(5 * 60_000);
+    await controller.handleAlarm();
+
+    state = await repo.load();
+    expect(state.activeSession).toBeNull();
+    expect(state.lastSessionSummary).toMatchObject({
+      focusCount: 1,
+      breakCount: 1,
+    });
+    expect(notificationsShown).toHaveLength(2);
+    expect(notificationsShown[1]?.title).toBe('Session finished');
+    expect(scheduled).toEqual([]);
+  });
+
+  it('repeats focus after break when repeat is on', async () => {
+    const { clock, repo, controller, scheduled, synced } = createFakes(NOW);
+
+    await controller.handleCommand(startCmd(10, 5, true));
+    clock.advance(10 * 60_000);
+    await controller.handleAlarm();
+    clock.advance(5 * 60_000);
+    await controller.handleAlarm();
+
+    const state = await repo.load();
+    expect(state.activeSession?.phase).toBe('focus');
+    expect(state.activeSession?.plannedMs).toBe(10 * 60_000);
+    expect(state.history).toHaveLength(1);
+    expect(scheduled).toEqual([clock.now() + 10 * 60_000]);
+    expect(synced.at(-1)?.length).toBeGreaterThan(0);
+  });
+
+  it('does not skip break when expiry handlers race', async () => {
+    const { clock, repo, controller, notificationsShown, scheduled } = createFakes(NOW);
+
+    await controller.handleCommand(startCmd(10, 5, true));
+    clock.advance(10 * 60_000);
+
+    await Promise.all([controller.handleAlarm(), controller.handleAlarm()]);
+
+    const state = await repo.load();
+    expect(state.activeSession?.phase).toBe('break');
+    expect(state.history).toHaveLength(1);
+    expect(notificationsShown).toHaveLength(1);
+    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
+  });
+
+  it('reconciles an expired running focus into break', async () => {
+    const { clock, repo, controller, notificationsShown, scheduled } = createFakes(NOW);
+
+    await controller.handleCommand(startCmd(10, 5, false));
     clock.advance(15 * 60_000);
     await controller.reconcile();
 
     const state = await repo.load();
-    expect(state.activeSession).toBeNull();
-    expect(state.lastCompletion?.record.outcome).toBe('completed');
+    expect(state.activeSession?.phase).toBe('break');
+    expect(state.lastSessionSummary).toBeNull();
     expect(notificationsShown).toHaveLength(1);
-    expect(scheduled).toEqual([]);
+    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
   });
 
   it('ignores an alarm while the session is paused', async () => {
     const { clock, repo, controller, notificationsShown } = createFakes(NOW);
 
-    await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 25,
-    });
+    await controller.handleCommand(startCmd());
     clock.advance(5 * 60_000);
     await controller.handleCommand({ type: 'PAUSE_SESSION' });
 
@@ -177,15 +236,13 @@ describe('SessionController', () => {
     expect(notificationsShown).toHaveLength(0);
   });
 
-  it('starts another session from the last completion', async () => {
+  it('starts another session from last settings', async () => {
     const { clock, repo, controller } = createFakes(NOW);
 
-    await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 25,
-    });
+    await controller.handleCommand(startCmd(25, 5, false));
     clock.advance(25 * 60_000);
+    await controller.handleAlarm();
+    clock.advance(5 * 60_000);
     await controller.handleAlarm();
 
     expect(await controller.handleCommand({ type: 'START_ANOTHER' })).toEqual({
@@ -195,17 +252,13 @@ describe('SessionController', () => {
     const state = await repo.load();
     expect(state.activeSession?.contextId).toBe(DEVELOPMENT_CONTEXT_ID);
     expect(state.activeSession?.plannedMs).toBe(25 * 60_000);
-    expect(state.lastCompletion).toBeNull();
+    expect(state.activeSession?.breakMinutes).toBe(5);
   });
 
   it('recreates the alarm when reconciling a still-running session', async () => {
     const { clock, controller, scheduled } = createFakes(NOW);
 
-    await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 25,
-    });
+    await controller.handleCommand(startCmd());
     scheduled.length = 0;
 
     clock.advance(5 * 60_000);
@@ -216,11 +269,7 @@ describe('SessionController', () => {
   it('updates the action badge while a session is active and clears it when idle', async () => {
     const { clock, controller, badgeSnapshots } = createFakes(NOW);
 
-    await controller.handleCommand({
-      type: 'START_SESSION',
-      contextId: DEVELOPMENT_CONTEXT_ID,
-      durationMinutes: 25,
-    });
+    await controller.handleCommand(startCmd());
     expect(badgeSnapshots.at(-1)?.text).toBe('active');
 
     clock.advance(60_000);
