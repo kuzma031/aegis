@@ -362,6 +362,12 @@ function ContextDetail({
   const [breakMinutes, setBreakMinutes] = useState(String(latest.defaultBreakMinutes));
   const [autoRepeat, setAutoRepeat] = useState(latest.autoRepeat);
   const [blockDuringBreak, setBlockDuringBreak] = useState(latest.blockDuringBreak);
+  const [strictLockControls, setStrictLockControls] = useState(latest.strictLockControls);
+  const [strictAllowPeek, setStrictAllowPeek] = useState(latest.strictAllowPeek);
+  const [strictAllowPeekOnBreak, setStrictAllowPeekOnBreak] = useState(
+    latest.strictAllowPeekOnBreak,
+  );
+  const [strictEscalatePeek, setStrictEscalatePeek] = useState(latest.strictEscalatePeek);
   const [longBreaksEnabled, setLongBreaksEnabled] = useState(latest.longBreaksEnabled);
   const [longBreakAfterSessions, setLongBreakAfterSessions] = useState(
     String(latest.longBreakAfterSessions),
@@ -382,6 +388,10 @@ function ContextDetail({
     setBreakMinutes(String(latest.defaultBreakMinutes));
     setAutoRepeat(latest.autoRepeat);
     setBlockDuringBreak(latest.blockDuringBreak);
+    setStrictLockControls(latest.strictLockControls);
+    setStrictAllowPeek(latest.strictAllowPeek);
+    setStrictAllowPeekOnBreak(latest.strictAllowPeekOnBreak);
+    setStrictEscalatePeek(latest.strictEscalatePeek);
     setLongBreaksEnabled(latest.longBreaksEnabled);
     setLongBreakAfterSessions(String(latest.longBreakAfterSessions));
     setLongBreakMinutes(String(latest.longBreakMinutes));
@@ -393,6 +403,10 @@ function ContextDetail({
     nextBlockDuringBreak = blockDuringBreak,
     nextLongBreaksEnabled = longBreaksEnabled,
     nextDailyGoalMinutes = dailyGoalMinutes,
+    nextStrictLock = strictLockControls,
+    nextStrictPeek = strictAllowPeek,
+    nextStrictPeekOnBreak = strictAllowPeekOnBreak,
+    nextStrictEscalate = strictEscalatePeek,
   ): ContextDefaultsInput | null {
     const focusValue = parseMinutesInput(focusMinutes);
     const breakValue = parseMinutesInput(breakMinutes);
@@ -416,11 +430,16 @@ function ContextDetail({
         return null;
       }
     }
+    const peekEnabled = nextStrictPeek || nextStrictPeekOnBreak;
     return {
       focusMinutes: focusValue,
       breakMinutes: breakValue,
       autoRepeat: nextAutoRepeat,
       blockDuringBreak: nextBlockDuringBreak,
+      strictLockControls: nextStrictLock,
+      strictAllowPeek: nextStrictPeek,
+      strictAllowPeekOnBreak: nextStrictPeekOnBreak,
+      strictEscalatePeek: peekEnabled && nextStrictEscalate,
       longBreaksEnabled: nextLongBreaksEnabled,
       longBreakAfterSessions:
         afterValue != null && Number.isInteger(afterValue)
@@ -437,12 +456,20 @@ function ContextDetail({
     nextBlockDuringBreak = blockDuringBreak,
     nextLongBreaksEnabled = longBreaksEnabled,
     nextDailyGoalMinutes = dailyGoalMinutes,
+    nextStrictLock = strictLockControls,
+    nextStrictPeek = strictAllowPeek,
+    nextStrictPeekOnBreak = strictAllowPeekOnBreak,
+    nextStrictEscalate = strictEscalatePeek,
   ) {
     const defaults = buildDefaultsInput(
       nextAutoRepeat,
       nextBlockDuringBreak,
       nextLongBreaksEnabled,
       nextDailyGoalMinutes,
+      nextStrictLock,
+      nextStrictPeek,
+      nextStrictPeekOnBreak,
+      nextStrictEscalate,
     );
     if (!defaults) {
       revertDefaultsFields();
@@ -453,6 +480,10 @@ function ContextDetail({
       defaults.breakMinutes === latest.defaultBreakMinutes &&
       defaults.autoRepeat === latest.autoRepeat &&
       defaults.blockDuringBreak === latest.blockDuringBreak &&
+      defaults.strictLockControls === latest.strictLockControls &&
+      defaults.strictAllowPeek === latest.strictAllowPeek &&
+      defaults.strictAllowPeekOnBreak === latest.strictAllowPeekOnBreak &&
+      defaults.strictEscalatePeek === latest.strictEscalatePeek &&
       defaults.longBreaksEnabled === latest.longBreaksEnabled &&
       defaults.longBreakAfterSessions === latest.longBreakAfterSessions &&
       defaults.longBreakMinutes === latest.longBreakMinutes &&
@@ -653,6 +684,123 @@ function ContextDetail({
               </>
             ) : null}
           </div>
+        </section>
+
+        <section className="edit-section">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <span className="edit-section-label">Strict mode</span>
+          </div>
+          <p className="muted" style={{ margin: 0 }}>
+            Optional locks for when willpower runs low. Copied onto the session when you
+            start.
+          </p>
+          <label
+            className="auto-repeat-check"
+            title="Hide pause and end while a timer is running. You can still choose at phase boundaries."
+          >
+            <input
+              type="checkbox"
+              checked={strictLockControls}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setStrictLockControls(next);
+                void saveDefaults(
+                  autoRepeat,
+                  blockDuringBreak,
+                  longBreaksEnabled,
+                  dailyGoalMinutes,
+                  next,
+                );
+              }}
+            />
+            <span>Lock pause &amp; end during session</span>
+          </label>
+          <label
+            className="auto-repeat-check"
+            title="On the blocked page, wait then open that site for a chosen duration during focus."
+          >
+            <input
+              type="checkbox"
+              checked={strictAllowPeek}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setStrictAllowPeek(next);
+                const escalate =
+                  next || strictAllowPeekOnBreak ? strictEscalatePeek : false;
+                if (!next && !strictAllowPeekOnBreak) {
+                  setStrictEscalatePeek(false);
+                }
+                void saveDefaults(
+                  autoRepeat,
+                  blockDuringBreak,
+                  longBreaksEnabled,
+                  dailyGoalMinutes,
+                  strictLockControls,
+                  next,
+                  strictAllowPeekOnBreak,
+                  escalate,
+                );
+              }}
+            />
+            <span>Allow a peek during focus</span>
+          </label>
+          <label
+            className="auto-repeat-check"
+            title="Same peek flow during breaks when sites stay blocked."
+          >
+            <input
+              type="checkbox"
+              checked={strictAllowPeekOnBreak}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setStrictAllowPeekOnBreak(next);
+                const escalate = strictAllowPeek || next ? strictEscalatePeek : false;
+                if (!strictAllowPeek && !next) {
+                  setStrictEscalatePeek(false);
+                }
+                void saveDefaults(
+                  autoRepeat,
+                  blockDuringBreak,
+                  longBreaksEnabled,
+                  dailyGoalMinutes,
+                  strictLockControls,
+                  strictAllowPeek,
+                  next,
+                  escalate,
+                );
+              }}
+            />
+            <span>Allow a peek during breaks</span>
+          </label>
+          <label
+            className={`auto-repeat-check${
+              strictAllowPeek || strictAllowPeekOnBreak
+                ? ''
+                : ' auto-repeat-check-disabled'
+            }`}
+            title="Each peek makes the next wait longer: 10s, then 1m, 5m, 15m, 30m."
+          >
+            <input
+              type="checkbox"
+              checked={strictEscalatePeek}
+              disabled={!strictAllowPeek && !strictAllowPeekOnBreak}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setStrictEscalatePeek(next);
+                void saveDefaults(
+                  autoRepeat,
+                  blockDuringBreak,
+                  longBreaksEnabled,
+                  dailyGoalMinutes,
+                  strictLockControls,
+                  strictAllowPeek,
+                  strictAllowPeekOnBreak,
+                  next,
+                );
+              }}
+            />
+            <span>Longer wait after each peek</span>
+          </label>
         </section>
 
         <section className="stack" style={{ gap: 8 }}>

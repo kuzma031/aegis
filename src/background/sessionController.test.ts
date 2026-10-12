@@ -47,10 +47,18 @@ function createFakes(now: number) {
       badgeTick = false;
     },
   };
-  const notificationsShown: Array<{ title: string; message: string }> = [];
+  const notificationsShown: Array<{
+    id?: string;
+    title: string;
+    message: string;
+    buttons?: Array<{ title: string }>;
+  }> = [];
   const notifications: NotificationAdapter = {
     async show(title, message) {
       notificationsShown.push({ title, message });
+    },
+    async showChoice(id, title, message, buttons) {
+      notificationsShown.push({ id, title, message, buttons });
     },
     async clear() {
       notificationsShown.length = 0;
@@ -113,7 +121,7 @@ function startCmd(
 describe('SessionController', () => {
   const NOW = 1_700_000_000_000;
 
-  it('starts, pauses, resumes, then enters break after focus', async () => {
+  it('starts, pauses, resumes, then awaits choice when repeat is off', async () => {
     const { clock, repo, controller, scheduled, notificationsShown, isBadgeTickOn, synced } =
       createFakes(NOW);
 
@@ -141,16 +149,24 @@ describe('SessionController', () => {
     await controller.handleAlarm();
 
     const state = await repo.load();
-    expect(state.activeSession?.phase).toBe('break');
+    expect(state.activeSession).toMatchObject({
+      phase: 'focus',
+      status: 'awaiting',
+    });
     expect(state.lastSessionSummary).toBeNull();
     expect(state.history).toHaveLength(1);
     expect(notificationsShown).toHaveLength(1);
-    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
+    expect(notificationsShown[0]).toMatchObject({
+      id: 'focus-session-choice',
+      title: 'Are you in flow?',
+      buttons: [{ title: 'Extend' }, { title: 'Start break' }],
+    });
+    expect(scheduled).toEqual([]);
     expect(synced.at(-1)?.length).toBeGreaterThan(0);
-    expect(isBadgeTickOn()).toBe(true);
+    expect(isBadgeTickOn()).toBe(false);
   });
 
-  it('clears session after break when repeat is off', async () => {
+  it('starts break from awaiting, then holds for start focus or end', async () => {
     const { clock, repo, controller, notificationsShown, scheduled } = createFakes(NOW);
 
     await controller.handleCommand(startCmd(10, 5, false));
@@ -158,20 +174,83 @@ describe('SessionController', () => {
     await controller.handleAlarm();
 
     let state = await repo.load();
+    expect(state.activeSession?.status).toBe('awaiting');
+
+    expect(await controller.handleCommand({ type: 'START_BREAK' })).toEqual({ ok: true });
+    state = await repo.load();
     expect(state.activeSession?.phase).toBe('break');
+    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
 
     clock.advance(5 * 60_000);
     await controller.handleAlarm();
 
     state = await repo.load();
+    expect(state.activeSession).toMatchObject({
+      phase: 'break',
+      status: 'awaiting',
+    });
+    expect(state.lastSessionSummary).toBeNull();
+    expect(notificationsShown.at(-1)).toMatchObject({
+      id: 'break-session-choice',
+      title: 'Break finished',
+      buttons: [{ title: 'Start focus' }, { title: 'End session' }],
+    });
+    expect(scheduled).toEqual([]);
+
+    expect(await controller.handleCommand({ type: 'CONTINUE_FOCUS' })).toEqual({
+      ok: true,
+    });
+    state = await repo.load();
+    expect(state.activeSession).toMatchObject({
+      phase: 'focus',
+      status: 'running',
+      plannedMs: 10 * 60_000,
+    });
+    expect(scheduled).toEqual([clock.now() + 10 * 60_000]);
+  });
+
+  it('ends onto the recap from break awaiting without double-counting', async () => {
+    const { clock, repo, controller } = createFakes(NOW);
+
+    await controller.handleCommand(startCmd(10, 5, false));
+    clock.advance(10 * 60_000);
+    await controller.handleAlarm();
+    expect(await controller.handleCommand({ type: 'START_BREAK' })).toEqual({ ok: true });
+    clock.advance(5 * 60_000);
+    await controller.handleAlarm();
+
+    expect(await controller.handleCommand({ type: 'END_SESSION' })).toEqual({ ok: true });
+
+    const state = await repo.load();
     expect(state.activeSession).toBeNull();
+    expect(state.history).toHaveLength(1);
     expect(state.lastSessionSummary).toMatchObject({
       focusCount: 1,
       breakCount: 1,
+      focusMs: 10 * 60_000,
+      breakMs: 5 * 60_000,
     });
-    expect(notificationsShown).toHaveLength(2);
-    expect(notificationsShown[1]?.title).toBe('Session finished');
-    expect(scheduled).toEqual([]);
+  });
+
+  it('extends focus from awaiting with a custom duration', async () => {
+    const { clock, repo, controller, scheduled } = createFakes(NOW);
+
+    await controller.handleCommand(startCmd(10, 5, false));
+    clock.advance(10 * 60_000);
+    await controller.handleAlarm();
+
+    expect(
+      await controller.handleCommand({ type: 'EXTEND_FOCUS', durationMinutes: 40 }),
+    ).toEqual({ ok: true });
+
+    const state = await repo.load();
+    expect(state.activeSession).toMatchObject({
+      phase: 'focus',
+      status: 'running',
+      focusMinutes: 10,
+      plannedMs: 40 * 60_000,
+    });
+    expect(scheduled).toEqual([clock.now() + 40 * 60_000]);
   });
 
   it('repeats focus after break when repeat is on', async () => {
@@ -206,7 +285,7 @@ describe('SessionController', () => {
     expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
   });
 
-  it('reconciles an expired running focus into break', async () => {
+  it('reconciles an expired running focus into awaiting when repeat is off', async () => {
     const { clock, repo, controller, notificationsShown, scheduled } = createFakes(NOW);
 
     await controller.handleCommand(startCmd(10, 5, false));
@@ -214,10 +293,13 @@ describe('SessionController', () => {
     await controller.reconcile();
 
     const state = await repo.load();
-    expect(state.activeSession?.phase).toBe('break');
+    expect(state.activeSession).toMatchObject({
+      phase: 'focus',
+      status: 'awaiting',
+    });
     expect(state.lastSessionSummary).toBeNull();
     expect(notificationsShown).toHaveLength(1);
-    expect(scheduled).toEqual([clock.now() + 5 * 60_000]);
+    expect(scheduled).toEqual([]);
   });
 
   it('ignores an alarm while the session is paused', async () => {
@@ -242,8 +324,10 @@ describe('SessionController', () => {
     await controller.handleCommand(startCmd(25, 5, false));
     clock.advance(25 * 60_000);
     await controller.handleAlarm();
+    expect(await controller.handleCommand({ type: 'START_BREAK' })).toEqual({ ok: true });
     clock.advance(5 * 60_000);
     await controller.handleAlarm();
+    expect(await controller.handleCommand({ type: 'END_SESSION' })).toEqual({ ok: true });
 
     expect(await controller.handleCommand({ type: 'START_ANOTHER' })).toEqual({
       ok: true,

@@ -4,6 +4,7 @@ import {
   formatTargetLabel,
   getDistractionsBySite,
   getFocusByTask,
+  getTodayPeriodStats,
   getTodayStats,
   getWeekByContext,
   getWeekCadence,
@@ -24,6 +25,10 @@ function record(
         | 'breakCount'
         | 'breakMs'
         | 'distractionBySite'
+        | 'peekStarts'
+        | 'peekCount'
+        | 'peekAbandoned'
+        | 'peekMs'
         | 'taskId'
         | 'taskTitle'
       >
@@ -37,6 +42,10 @@ function record(
     breakCount: partial.breakCount ?? 0,
     breakMs: partial.breakMs ?? 0,
     distractionBySite: partial.distractionBySite ?? {},
+    peekStarts: partial.peekStarts ?? 0,
+    peekCount: partial.peekCount ?? 0,
+    peekAbandoned: partial.peekAbandoned ?? 0,
+    peekMs: partial.peekMs ?? 0,
     taskId: partial.taskId ?? null,
     taskTitle: partial.taskTitle ?? null,
     ...partial,
@@ -138,6 +147,44 @@ describe('stats', () => {
       { contextId: 'b', contextName: 'Beta', focusMs: 90 * 60_000 },
       { contextId: 'a', contextName: 'Alpha Renamed', focusMs: 50 * 60_000 },
     ]);
+  });
+
+  it('aggregates peek counters across a period', () => {
+    const now = new Date(2026, 2, 18, 15, 0, 0).getTime();
+    const todayMorning = new Date(2026, 2, 18, 9, 0, 0).getTime();
+    const history = [
+      record({
+        id: '1',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 25 * 60_000,
+        endedAt: todayMorning,
+        outcome: 'completed',
+        peekStarts: 3,
+        peekCount: 2,
+        peekAbandoned: 1,
+        peekMs: 7 * 60_000,
+      }),
+      record({
+        id: '2',
+        contextId: 'dev',
+        contextName: 'Development',
+        focusedMs: 10 * 60_000,
+        endedAt: todayMorning + 60_000,
+        outcome: 'ended_early',
+        peekStarts: 1,
+        peekCount: 1,
+        peekAbandoned: 0,
+        peekMs: 2 * 60_000,
+      }),
+    ];
+
+    expect(getTodayPeriodStats(history, now)).toMatchObject({
+      peekStarts: 4,
+      peekCount: 3,
+      peekAbandoned: 1,
+      peekMs: 9 * 60_000,
+    });
   });
 
   it('builds weekday cadence and site distraction rankings', () => {

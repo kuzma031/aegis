@@ -23,6 +23,14 @@ export interface Context {
   autoRepeat: boolean;
   /** When true, blocked sites stay blocked during breaks. */
   blockDuringBreak: boolean;
+  /** When true, pause/end are disabled while a phase is running or paused. */
+  strictLockControls: boolean;
+  /** When true, blocked page can unlock a site after a wait during focus. */
+  strictAllowPeek: boolean;
+  /** When true, peek is also available during breaks (when sites stay blocked). */
+  strictAllowPeekOnBreak: boolean;
+  /** When true, each successful peek increases the next wait. */
+  strictEscalatePeek: boolean;
   /** When true, insert a long break after every N focus sessions. */
   longBreaksEnabled: boolean;
   /** Take a long break after this many completed focus sessions (e.g. 4). */
@@ -38,7 +46,7 @@ export interface Context {
   updatedAt: number;
 }
 
-export type SessionStatus = 'running' | 'paused';
+export type SessionStatus = 'running' | 'paused' | 'awaiting';
 export type SessionPhase = 'focus' | 'break';
 
 /** Per-task focus time accrued during a single focus↔break run. */
@@ -46,6 +54,12 @@ export interface SessionRunTaskFocus {
   taskId: ID;
   taskTitle: string;
   focusMs: number;
+}
+
+/** Temporary unblock of a blocked host until `expiresAt`. */
+export interface PeekGrant {
+  host: string;
+  expiresAt: number;
 }
 
 /** Accumulated stats for the current focus↔break run until it goes idle. */
@@ -61,6 +75,18 @@ export interface SessionRunStats {
   /** Focus time per Working task during this run. */
   tasks: SessionRunTaskFocus[];
   startedAt: number;
+  /** Times the user started a peek wait during this run. */
+  peekStarts: number;
+  /** Successful peeks granted during this run. */
+  peekCount: number;
+  /** Peek waits cancelled before unlock during this run. */
+  peekAbandoned: number;
+  /** Total granted peek unlock duration during this run (ms). */
+  peekMs: number;
+  /** Timed site unlocks for this run. */
+  peekGrants: PeekGrant[];
+  /** Active peek wait for a blocked host, if any. */
+  peekWait: { host: string; readyAt: number } | null;
 }
 
 export interface ActiveSession {
@@ -82,6 +108,11 @@ export interface ActiveSession {
   isLongBreak: boolean;
   /** When true, restart focus after break forever until user ends. */
   repeat: boolean;
+  /** Copied from context at session start. */
+  strictLockControls: boolean;
+  strictAllowPeek: boolean;
+  strictAllowPeekOnBreak: boolean;
+  strictEscalatePeek: boolean;
   plannedMs: number;
   startedAt: number;
   status: SessionStatus;
@@ -93,6 +124,14 @@ export interface ActiveSession {
   distractionBySite: Record<string, number>;
   /** Pauses during this focus phase. */
   pauseCount: number;
+  /** Peek waits started during this phase. */
+  peekStarts: number;
+  /** Successful peeks granted during this phase. */
+  peekCount: number;
+  /** Peek waits cancelled during this phase. */
+  peekAbandoned: number;
+  /** Granted peek unlock duration during this phase (ms). */
+  peekMs: number;
   /** Totals across the whole run (including prior phases). */
   run: SessionRunStats;
   /** Open focus-time segment for the Working task, if accruing. */
@@ -116,6 +155,14 @@ export interface SessionRecord {
   breakCount: number;
   breakMs: number;
   distractionBySite: Record<string, number>;
+  /** Peek waits started during this focus (break peeks append here too). */
+  peekStarts: number;
+  /** Successful peeks granted for this focus cycle. */
+  peekCount: number;
+  /** Peek waits cancelled for this focus cycle. */
+  peekAbandoned: number;
+  /** Granted peek unlock duration for this focus cycle (ms). */
+  peekMs: number;
   /** Working task at focus-phase close (survives rename/delete via title). */
   taskId: ID | null;
   taskTitle: string | null;
@@ -131,6 +178,10 @@ export interface SessionSummary {
   breakMs: number;
   distractionOverrides: number;
   pauseCount: number;
+  peekStarts: number;
+  peekCount: number;
+  peekAbandoned: number;
+  peekMs: number;
   /** Tasks that accrued focus time during this run (empty if none). */
   tasks: SessionRunTaskFocus[];
   startedAt: number;

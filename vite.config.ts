@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 const root = import.meta.dirname;
 const contentEntry = resolve(root, 'src/content/taskRail.ts');
 const contentStyles = resolve(root, 'src/content/taskRailStyles.ts');
+const peekChip = resolve(root, 'src/content/peekChip.ts');
+const peekChipStyles = resolve(root, 'src/content/peekChipStyles.ts');
 const contentConfigFile = resolve(root, 'vite.content.config.ts');
 
 /** After the main extension bundle, rebuild content.js (survives emptyOutDir + watch). */
@@ -16,6 +18,8 @@ function buildContentScriptPlugin() {
     buildStart() {
       this.addWatchFile(contentEntry);
       this.addWatchFile(contentStyles);
+      this.addWatchFile(peekChip);
+      this.addWatchFile(peekChipStyles);
     },
     async closeBundle() {
       if (buildingContent) {

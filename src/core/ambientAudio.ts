@@ -44,7 +44,7 @@ export function ambientTrackFile(id: AmbientTrackId): string {
 export function ambientTrackForSession(
   enabled: boolean,
   trackId: unknown,
-  sessionStatus: 'running' | 'paused' | null | undefined,
+  sessionStatus: 'running' | 'paused' | 'awaiting' | null | undefined,
 ): AmbientTrackId | null {
   if (!enabled || sessionStatus !== 'running') {
     return null;

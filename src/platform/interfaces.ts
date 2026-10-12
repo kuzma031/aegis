@@ -11,9 +11,20 @@ export interface AlarmAdapter {
   clearBadgeTick(): Promise<void>;
 }
 
+export interface NotificationButton {
+  title: string;
+}
+
 export interface NotificationAdapter {
   show(title: string, message: string): Promise<void>;
-  clear(): Promise<void>;
+  /** Choice notification with up to two buttons (Chrome limit). */
+  showChoice(
+    id: string,
+    title: string,
+    message: string,
+    buttons: NotificationButton[],
+  ): Promise<void>;
+  clear(id?: string): Promise<void>;
 }
 
 export interface ActionBadgeAdapter {

@@ -10,13 +10,22 @@ import {
   formatNotificationTemplate,
 } from '@core/completionFeedback';
 import {
+  allowPeek,
+  beginPeekWait,
+  clearPeekWait,
   completeSession,
+  continueFocusSession,
   dismissCompletion,
   endSession,
+  extendFocusSession,
+  getPendingBreak,
   isExpired,
+  nextPeekExpiryAt,
   pauseSession,
+  pruneExpiredPeeks,
   recordDistraction,
   resumeSession,
+  startBreakSession,
   startSession,
 } from '@core/session';
 import {
@@ -34,12 +43,22 @@ import type {
   AlarmAdapter,
   NotificationAdapter,
 } from '@platform/interfaces';
+import {
+  BREAK_CHOICE_NOTIFICATION_ID,
+  FOCUS_CHOICE_NOTIFICATION_ID,
+  STRICT_ESCAPE_NOTIFICATION_ID,
+} from '@platform/notifications';
 import type { StateRepository } from '@platform/storage';
 
 export { sitesToBlock };
 
 /** Chrome one-shot alarms are delayed below ~30s; use setTimeout as a backup. */
 const CHROME_ALARM_MIN_MS = 30_000;
+
+const FOCUS_CHOICE_TITLE = 'Are you in flow?';
+const FOCUS_CHOICE_MESSAGE = 'Extend the session, or start your break.';
+const BREAK_CHOICE_TITLE = 'Break finished';
+const BREAK_CHOICE_MESSAGE = 'Start another focus session, or end and see your recap.';
 
 export class SessionController {
   private readonly repo: StateRepository;
@@ -49,6 +68,7 @@ export class SessionController {
   private readonly blockingSync: BlockingSynchronizer;
   private readonly badge: ActionBadgeAdapter;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
+  private peekExpiryTimer: ReturnType<typeof setTimeout> | null = null;
   /** Serialize expiry handling so alarm + UI CHECK_EXPIRED can't double-advance. */
   private expiryChain: Promise<void> = Promise.resolve();
 
@@ -82,13 +102,25 @@ export class SessionController {
       case 'RESUME_SESSION':
         return this.resume();
       case 'END_SESSION':
-        return this.end();
+        return this.end(command.force === true);
+      case 'EXTEND_FOCUS':
+        return this.extendFocus(command.durationMinutes);
+      case 'START_BREAK':
+        return this.startBreak();
+      case 'CONTINUE_FOCUS':
+        return this.continueFocus();
       case 'START_ANOTHER':
         return this.startAnother();
       case 'DISMISS_COMPLETION':
         return this.dismiss();
       case 'RECORD_DISTRACTION':
         return this.recordDistractionAttempt(command.site);
+      case 'BEGIN_PEEK_WAIT':
+        return this.beginPeek(command.site);
+      case 'CLEAR_PEEK_WAIT':
+        return this.clearPeek();
+      case 'ALLOW_PEEK':
+        return this.grantPeek(command.site, command.durationMinutes);
       case 'CHECK_EXPIRED':
         await this.handleAlarm();
         return okVoid();
@@ -101,6 +133,7 @@ export class SessionController {
 
   async handleBadgeTick(): Promise<void> {
     await this.handleAlarm();
+    await this.prunePeeksAndResync();
     await this.syncBadgeAndTick();
   }
 
@@ -123,7 +156,7 @@ export class SessionController {
       return;
     }
 
-    if (session.status === 'paused') {
+    if (session.status === 'paused' || session.status === 'awaiting') {
       await this.clearExpiryScheduling();
       await this.syncSideEffects();
       return;
@@ -180,15 +213,51 @@ export class SessionController {
       });
 
       try {
-        if (beforePhase === 'focus' && next?.phase === 'break') {
+        if (beforePhase === 'focus' && next?.status === 'awaiting') {
+          const pending = getPendingBreak(next);
+          const secondTitle = pending.minutes > 0 ? 'Start break' : 'End session';
+          await this.notifications.showChoice(
+            FOCUS_CHOICE_NOTIFICATION_ID,
+            FOCUS_CHOICE_TITLE,
+            FOCUS_CHOICE_MESSAGE,
+            [{ title: 'Extend' }, { title: secondTitle }],
+          );
+        } else if (beforePhase === 'break' && next?.status === 'awaiting') {
+          await this.notifications.showChoice(
+            BREAK_CHOICE_NOTIFICATION_ID,
+            BREAK_CHOICE_TITLE,
+            BREAK_CHOICE_MESSAGE,
+            [{ title: 'Start focus' }, { title: 'End session' }],
+          );
+        } else if (beforePhase === 'focus' && next?.phase === 'break') {
           const record = completed.value.history.at(-1);
           if (record) {
             const time = formatFocusTimeLabel(record.focusedMs);
-            await this.notifications.show(
-              DEFAULT_FOCUS_COMPLETE_TITLE,
-              formatNotificationTemplate(DEFAULT_FOCUS_COMPLETE_MESSAGE, { time }),
-            );
+            const message = formatNotificationTemplate(DEFAULT_FOCUS_COMPLETE_MESSAGE, {
+              time,
+            });
+            if (next.strictLockControls) {
+              await this.notifications.showChoice(
+                STRICT_ESCAPE_NOTIFICATION_ID,
+                DEFAULT_FOCUS_COMPLETE_TITLE,
+                message,
+                [{ title: 'End session' }],
+              );
+            } else {
+              await this.notifications.show(DEFAULT_FOCUS_COMPLETE_TITLE, message);
+            }
           }
+        } else if (
+          beforePhase === 'break' &&
+          next?.phase === 'focus' &&
+          next.strictLockControls
+        ) {
+          await this.notifications.showChoice(
+            STRICT_ESCAPE_NOTIFICATION_ID,
+            'Break finished',
+            'Next focus started. End the session if you need out.',
+            [{ title: 'End session' }],
+          );
         } else if (beforePhase === 'focus' && !next) {
           await this.notifications.show(
             DEFAULT_CYCLE_FINISHED_TITLE,
@@ -286,13 +355,63 @@ export class SessionController {
     return okVoid();
   }
 
-  private async end(): Promise<VoidResult> {
-    const result = await this.apply((state) => endSession(state, this.clock.now()));
+  private async end(force = false): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      endSession(state, this.clock.now(), { force }),
+    );
     if (!result.ok) {
       return result;
     }
     await this.clearExpiryScheduling();
     await this.notifications.clear();
+    await this.syncSideEffects();
+    return okVoid();
+  }
+
+  private async extendFocus(durationMinutes: number): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      extendFocusSession(state, durationMinutes, this.clock.now()),
+    );
+    if (!result.ok) {
+      return result;
+    }
+    await this.notifications.clear(FOCUS_CHOICE_NOTIFICATION_ID);
+    const endsAt = result.value.activeSession?.endsAt;
+    if (endsAt != null) {
+      await this.scheduleExpiry(endsAt);
+    }
+    await this.syncSideEffects();
+    return okVoid();
+  }
+
+  private async startBreak(): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      startBreakSession(state, this.clock.now()),
+    );
+    if (!result.ok) {
+      return result;
+    }
+    await this.notifications.clear(FOCUS_CHOICE_NOTIFICATION_ID);
+    const endsAt = result.value.activeSession?.endsAt;
+    if (endsAt != null) {
+      await this.scheduleExpiry(endsAt);
+    }
+    await this.syncSideEffects();
+    return okVoid();
+  }
+
+  private async continueFocus(): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      continueFocusSession(state, this.clock.now()),
+    );
+    if (!result.ok) {
+      return result;
+    }
+    await this.notifications.clear(BREAK_CHOICE_NOTIFICATION_ID);
+    const endsAt = result.value.activeSession?.endsAt;
+    if (endsAt != null) {
+      await this.scheduleExpiry(endsAt);
+    }
     await this.syncSideEffects();
     return okVoid();
   }
@@ -335,6 +454,72 @@ export class SessionController {
     return okVoid();
   }
 
+  private async beginPeek(site?: string): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      beginPeekWait(state, site, this.clock.now()),
+    );
+    if (!result.ok) {
+      return result;
+    }
+    return okVoid();
+  }
+
+  private async clearPeek(): Promise<VoidResult> {
+    const result = await this.apply((state) => clearPeekWait(state));
+    if (!result.ok) {
+      return result;
+    }
+    return okVoid();
+  }
+
+  private async grantPeek(
+    site: string | undefined,
+    durationMinutes: number,
+  ): Promise<VoidResult> {
+    const result = await this.apply((state) =>
+      allowPeek(state, site, durationMinutes, this.clock.now()),
+    );
+    if (!result.ok) {
+      return result;
+    }
+    await this.syncSideEffects();
+    return okVoid();
+  }
+
+  private async prunePeeksAndResync(): Promise<void> {
+    const before = await this.repo.load();
+    const pruned = pruneExpiredPeeks(before, this.clock.now());
+    if (pruned === before) {
+      this.schedulePeekExpiry(pruned);
+      return;
+    }
+    await this.repo.update(() => pruned);
+    await this.blockingSync.syncFromState(pruned, this.clock.now());
+    this.schedulePeekExpiry(pruned);
+  }
+
+  private schedulePeekExpiry(state: AppState): void {
+    if (this.peekExpiryTimer != null) {
+      clearTimeout(this.peekExpiryTimer);
+      this.peekExpiryTimer = null;
+    }
+    const session = state.activeSession;
+    if (!session) {
+      return;
+    }
+    const when = nextPeekExpiryAt(session, this.clock.now());
+    if (when == null) {
+      return;
+    }
+    const delay = Math.max(0, when - this.clock.now());
+    this.peekExpiryTimer = setTimeout(() => {
+      this.peekExpiryTimer = null;
+      void this.prunePeeksAndResync().catch((error: unknown) => {
+        console.error('[focus] peek expiry failed', error);
+      });
+    }, delay);
+  }
+
   private async apply(
     fn: (state: AppState) => Result<AppState>,
   ): Promise<Result<AppState>> {
@@ -348,8 +533,14 @@ export class SessionController {
 
   private async syncSideEffects(): Promise<void> {
     const state = await this.repo.load();
-    await this.blockingSync.syncFromState(state);
+    try {
+      await this.blockingSync.syncFromState(state, this.clock.now());
+    } catch (error: unknown) {
+      // Tab restore races must not fail the user-facing command.
+      console.warn('[focus] blocking sync after command failed', error);
+    }
     await this.syncBadgeAndTick(state);
+    this.schedulePeekExpiry(state);
   }
 
   private async syncBadgeAndTick(state?: AppState): Promise<void> {
@@ -359,7 +550,8 @@ export class SessionController {
     const session = current.activeSession;
     const running =
       session?.status === 'running' && !isExpired(session, this.clock.now());
-    if (running) {
+    const hasPeek = (session?.run.peekGrants.length ?? 0) > 0;
+    if (running || hasPeek) {
       await this.alarms.startBadgeTick();
     } else {
       await this.alarms.clearBadgeTick();

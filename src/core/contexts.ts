@@ -22,6 +22,10 @@ export interface ContextDefaultsInput {
   breakMinutes: number;
   autoRepeat: boolean;
   blockDuringBreak: boolean;
+  strictLockControls: boolean;
+  strictAllowPeek: boolean;
+  strictAllowPeekOnBreak: boolean;
+  strictEscalatePeek: boolean;
   longBreaksEnabled: boolean;
   longBreakAfterSessions: number;
   longBreakMinutes: number;
@@ -128,6 +132,10 @@ function defaultContextFields(
     defaultBreakMinutes: 5,
     autoRepeat: true,
     blockDuringBreak: true,
+    strictLockControls: false,
+    strictAllowPeek: true,
+    strictAllowPeekOnBreak: true,
+    strictEscalatePeek: true,
     longBreaksEnabled: false,
     longBreakAfterSessions: DEFAULT_LONG_BREAK_AFTER_SESSIONS,
     longBreakMinutes: DEFAULT_LONG_BREAK_MINUTES,
@@ -214,11 +222,22 @@ export function updateContextDefaults(
     return goalResult;
   }
 
+  const strictLockControls = defaults.strictLockControls === true;
+  const strictAllowPeek = defaults.strictAllowPeek === true;
+  const strictAllowPeekOnBreak = defaults.strictAllowPeekOnBreak === true;
+  const strictEscalatePeek =
+    (strictAllowPeek || strictAllowPeekOnBreak) &&
+    defaults.strictEscalatePeek === true;
+
   if (
     context.defaultFocusMinutes === focusResult.value &&
     context.defaultBreakMinutes === breakResult.value &&
     context.autoRepeat === defaults.autoRepeat &&
     context.blockDuringBreak === defaults.blockDuringBreak &&
+    context.strictLockControls === strictLockControls &&
+    context.strictAllowPeek === strictAllowPeek &&
+    context.strictAllowPeekOnBreak === strictAllowPeekOnBreak &&
+    context.strictEscalatePeek === strictEscalatePeek &&
     context.longBreaksEnabled === defaults.longBreaksEnabled &&
     context.longBreakAfterSessions === afterResult.value &&
     context.longBreakMinutes === longBreakResult.value &&
@@ -234,6 +253,10 @@ export function updateContextDefaults(
       defaultBreakMinutes: breakResult.value,
       autoRepeat: defaults.autoRepeat,
       blockDuringBreak: defaults.blockDuringBreak,
+      strictLockControls,
+      strictAllowPeek,
+      strictAllowPeekOnBreak,
+      strictEscalatePeek,
       longBreaksEnabled: defaults.longBreaksEnabled,
       longBreakAfterSessions: afterResult.value,
       longBreakMinutes: longBreakResult.value,

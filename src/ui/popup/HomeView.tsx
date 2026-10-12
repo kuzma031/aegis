@@ -2,8 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { extractSiteFromUrl } from '@core/domain';
 import { addSite } from '@core/contexts';
 import { DAILY_GOAL_OFF } from '@core/contexts';
+import { isDevelopmentMode } from '@core/env';
 import { formatClock, formatDuration, formatMinutesPhrase } from '@core/format';
-import { getRemainingMs } from '@core/session';
+import {
+  areSessionControlsLocked,
+  getPendingBreak,
+  getRemainingMs,
+} from '@core/session';
 import { getTodayPeriodStats } from '@core/stats';
 import type { AppState, SessionSummary, VoidResult } from '@core/types';
 import { createTabsAdapter } from '@platform/tabs';
@@ -28,6 +33,14 @@ function shortContextLabel(name: string): string {
   return first.length > 10 ? `${first.slice(0, 9)}…` : first;
 }
 
+function parseMinutesInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const value = Number.parseFloat(trimmed);
+  if (!Number.isFinite(value)) return null;
+  return value;
+}
+
 export function HomeView({
   state,
   onGoToContexts,
@@ -40,6 +53,7 @@ export function HomeView({
   const running = state.activeSession?.status === 'running';
   const now = useNow(Boolean(running));
   const [error, setError] = useState<string | null>(null);
+  const [extendMinutes, setExtendMinutes] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedContext =
     state.contexts.find((context) => context.id === state.settings.selectedContextId) ??
@@ -68,6 +82,12 @@ export function HomeView({
       cancelled = true;
     };
   }, [state.activeSession?.id, state.settings.selectedContextId]);
+
+  useEffect(() => {
+    if (state.activeSession?.status === 'awaiting') {
+      setExtendMinutes(null);
+    }
+  }, [state.activeSession?.id, state.activeSession?.status]);
 
   async function runCommand(resultPromise: Promise<VoidResult>) {
     const result = await resultPromise;
@@ -161,6 +181,53 @@ export function HomeView({
         summary={state.lastSessionSummary}
         error={error}
         onDone={() => void runCommand(sendCommand({ type: 'DISMISS_COMPLETION' }))}
+      />
+    );
+  }
+
+  if (state.activeSession?.status === 'awaiting' && state.activeSession.phase === 'focus') {
+    const session = state.activeSession;
+    const pendingBreak = getPendingBreak(session);
+    const durationStep = isDevelopmentMode() ? 'any' : 0.5;
+    const focusMin = isDevelopmentMode() ? 0.0167 : 0.5;
+    const inputValue =
+      extendMinutes == null ? String(session.focusMinutes) : extendMinutes;
+
+    return (
+      <AwaitingFocusView
+        state={state}
+        error={error}
+        extendMinutes={inputValue}
+        durationStep={durationStep}
+        focusMin={focusMin}
+        hasBreak={pendingBreak.minutes > 0}
+        breakLabel={pendingBreak.isLongBreak ? 'Start long break' : 'Start break'}
+        onExtendMinutesChange={(value) => setExtendMinutes(value)}
+        onExtend={() => {
+          const minutes = parseMinutesInput(inputValue);
+          if (minutes == null) {
+            setError('Enter a valid focus length');
+            return;
+          }
+          void runCommand(
+            sendCommand({ type: 'EXTEND_FOCUS', durationMinutes: minutes }),
+          );
+        }}
+        onStartBreak={() => void runCommand(sendCommand({ type: 'START_BREAK' }))}
+        onEnd={() => void runCommand(sendCommand({ type: 'END_SESSION' }))}
+      />
+    );
+  }
+
+  if (state.activeSession?.status === 'awaiting' && state.activeSession.phase === 'break') {
+    return (
+      <AwaitingBreakView
+        state={state}
+        error={error}
+        onContinueFocus={() =>
+          void runCommand(sendCommand({ type: 'CONTINUE_FOCUS' }))
+        }
+        onEnd={() => void runCommand(sendCommand({ type: 'END_SESSION' }))}
       />
     );
   }
@@ -310,6 +377,159 @@ export function HomeView({
   );
 }
 
+function AwaitingFocusView({
+  state,
+  error,
+  extendMinutes,
+  durationStep,
+  focusMin,
+  hasBreak,
+  breakLabel,
+  onExtendMinutesChange,
+  onExtend,
+  onStartBreak,
+  onEnd,
+}: {
+  state: AppState;
+  error: string | null;
+  extendMinutes: string;
+  durationStep: number | 'any';
+  focusMin: number;
+  hasBreak: boolean;
+  breakLabel: string;
+  onExtendMinutesChange: (value: string) => void;
+  onExtend: () => void;
+  onStartBreak: () => void;
+  onEnd: () => void;
+}) {
+  const session = state.activeSession!;
+
+  return (
+    <>
+      <header className="screen-header">
+        <div className="screen-header-left">
+          <div className="screen-header-icon screen-header-icon-soft" aria-hidden="true">
+            <IconShield />
+          </div>
+          <div className="screen-header-meta">
+            <span className="screen-eyebrow">Focus finished</span>
+            <div className="screen-title">
+              <span className="screen-title-text">{session.contextName}</span>
+              <span className="badge badge-soft">Choice</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="screen-body">
+        <div className="break-complete">
+          <h1 className="break-complete-title">Are you in flow?</h1>
+          <p className="break-complete-subtitle">
+            You finished{' '}
+            <strong>{formatMinutesPhrase(session.focusMinutes)}</strong> of focus with{' '}
+            <strong>{session.distractionOverrides}</strong> distraction{' '}
+            {session.distractionOverrides === 1 ? 'override' : 'overrides'}. Extend,
+            take a break, or end the session.
+          </p>
+
+          <div className="awaiting-extend-row">
+            <label className="field duration-field awaiting-extend-field">
+              <span className="muted">Extend for (min)</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={focusMin}
+                max={240}
+                step={durationStep}
+                value={extendMinutes}
+                onChange={(event) => onExtendMinutesChange(event.target.value)}
+              />
+            </label>
+            <Button variant="primary" onClick={onExtend}>
+              Extend
+            </Button>
+          </div>
+
+          <div className="home-actions">
+            <div className={`home-controls${hasBreak ? '' : ' home-controls-single'}`}>
+              {hasBreak ? (
+                <Button variant="secondary" onClick={onStartBreak}>
+                  {breakLabel}
+                </Button>
+              ) : null}
+              <Button variant="ghost" onClick={onEnd}>
+                End session
+              </Button>
+            </div>
+            {error ? <p className="error-text">{error}</p> : null}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function AwaitingBreakView({
+  state,
+  error,
+  onContinueFocus,
+  onEnd,
+}: {
+  state: AppState;
+  error: string | null;
+  onContinueFocus: () => void;
+  onEnd: () => void;
+}) {
+  const session = state.activeSession!;
+  const breakLabel = session.isLongBreak ? 'Long break' : 'Break';
+
+  return (
+    <>
+      <header className="screen-header">
+        <div className="screen-header-left">
+          <div className="screen-header-icon screen-header-icon-soft" aria-hidden="true">
+            <IconShield />
+          </div>
+          <div className="screen-header-meta">
+            <span className="screen-eyebrow">{breakLabel} finished</span>
+            <div className="screen-title">
+              <span className="screen-title-text">{session.contextName}</span>
+              <span className="badge badge-soft">Choice</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="screen-body">
+        <div className="break-complete">
+          <h1 className="break-complete-title">Ready for another focus?</h1>
+          <p className="break-complete-subtitle">
+            This run has{' '}
+            <strong>{session.run.focusCount}</strong> focus{' '}
+            {session.run.focusCount === 1 ? 'session' : 'sessions'} (
+            <strong>{formatDuration(session.run.focusMs)}</strong>). Start another{' '}
+            <strong>{formatMinutesPhrase(session.focusMinutes)}</strong> focus, or end
+            and see your recap.
+          </p>
+
+          <div className="home-actions">
+            <div className="home-controls">
+              <Button variant="primary" onClick={onContinueFocus}>
+                <IconPlay style={{ width: 14, height: 14 }} />
+                Start focus
+              </Button>
+              <Button variant="secondary" onClick={onEnd}>
+                End session
+              </Button>
+            </div>
+            {error ? <p className="error-text">{error}</p> : null}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function SessionEndedView({
   summary,
   error,
@@ -388,6 +608,14 @@ function SessionEndedView({
               <strong>{summary.distractionOverrides}</strong>
             </div>
             <div className="session-ended-row">
+              <span>Peeks taken</span>
+              <strong>{summary.peekCount}</strong>
+            </div>
+            <div className="session-ended-row">
+              <span>Peek time</span>
+              <strong>{formatDuration(summary.peekMs)}</strong>
+            </div>
+            <div className="session-ended-row">
               <span>Pauses</span>
               <strong>{summary.pauseCount}</strong>
             </div>
@@ -431,6 +659,7 @@ function RunningHome({
   const remaining = formatClock(remainingMs);
   const isPaused = session.status === 'paused';
   const isBreak = session.phase === 'break';
+  const controlsLocked = areSessionControlsLocked(session);
   const progress =
     session.plannedMs > 0 ? Math.min(1, Math.max(0, remainingMs / session.plannedMs)) : 0;
   const plannedLabel =
@@ -553,7 +782,11 @@ function RunningHome({
         )}
 
         <div className="home-actions">
-          {confirmEnd ? (
+          {controlsLocked ? (
+            <p className="muted" style={{ textAlign: 'center', margin: 0 }}>
+              Pause and end are locked until this phase finishes.
+            </p>
+          ) : confirmEnd ? (
             <div className="end-confirm">
               <p className="end-confirm-text">
                 {isBreak ? 'End break and stop the cycle?' : 'End this focus session?'}

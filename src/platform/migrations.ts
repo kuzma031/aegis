@@ -61,6 +61,10 @@ type LegacyContext = {
   defaultBreakMinutes?: unknown;
   autoRepeat?: unknown;
   blockDuringBreak?: unknown;
+  strictLockControls?: unknown;
+  strictAllowPeek?: unknown;
+  strictAllowPeekOnBreak?: unknown;
+  strictEscalatePeek?: unknown;
   longBreaksEnabled?: unknown;
   longBreakAfterSessions?: unknown;
   longBreakMinutes?: unknown;
@@ -73,6 +77,12 @@ function patchContext(context: LegacyContext, now: number): Context | null {
   if (typeof context.id !== 'string' || typeof context.name !== 'string') {
     return null;
   }
+  const strictLockControls = context.strictLockControls === true;
+  const strictAllowPeek = context.strictAllowPeek === true;
+  const strictAllowPeekOnBreak = context.strictAllowPeekOnBreak === true;
+  const strictEscalatePeek =
+    (strictAllowPeek || strictAllowPeekOnBreak) &&
+    context.strictEscalatePeek === true;
   return {
     id: context.id,
     name: context.name,
@@ -86,6 +96,10 @@ function patchContext(context: LegacyContext, now: number): Context | null {
     autoRepeat: context.autoRepeat === true,
     // Default on for legacy contexts — keep breaks distraction-free.
     blockDuringBreak: context.blockDuringBreak !== false,
+    strictLockControls,
+    strictAllowPeek,
+    strictAllowPeekOnBreak,
+    strictEscalatePeek,
     longBreaksEnabled: context.longBreaksEnabled === true,
     longBreakAfterSessions:
       typeof context.longBreakAfterSessions === 'number' && context.longBreakAfterSessions >= 1
@@ -196,6 +210,44 @@ function patchRunTaskFocus(raw: unknown): SessionRunStats['tasks'] {
   return tasks;
 }
 
+function patchPeekWait(
+  raw: SessionRunStats['peekWait'] | Partial<{ host: unknown; readyAt: unknown }> | null | undefined,
+): SessionRunStats['peekWait'] {
+  if (raw == null || typeof raw !== 'object') {
+    return null;
+  }
+  if (typeof raw.host !== 'string' || typeof raw.readyAt !== 'number') {
+    return null;
+  }
+  const host = raw.host.trim().toLowerCase().replace(/^www\./, '');
+  if (!host) {
+    return null;
+  }
+  return { host, readyAt: raw.readyAt };
+}
+
+function patchPeekGrants(run: Partial<SessionRunStats> | undefined): SessionRunStats['peekGrants'] {
+  if (Array.isArray(run?.peekGrants)) {
+    const grants: SessionRunStats['peekGrants'] = [];
+    for (const entry of run.peekGrants) {
+      if (
+        entry == null ||
+        typeof entry !== 'object' ||
+        typeof entry.host !== 'string' ||
+        typeof entry.expiresAt !== 'number'
+      ) {
+        continue;
+      }
+      const host = entry.host.trim().toLowerCase().replace(/^www\./, '');
+      if (!host) continue;
+      grants.push({ host, expiresAt: entry.expiresAt });
+    }
+    return grants;
+  }
+  // Legacy permanent peeks → treat as already expired (empty).
+  return [];
+}
+
 function patchRunStats(
   run: Partial<SessionRunStats> | undefined,
   startedAt: number,
@@ -211,6 +263,16 @@ function patchRunStats(
     distractionBySite: patchSiteCounts(run?.distractionBySite),
     tasks: patchRunTaskFocus(run?.tasks),
     startedAt: typeof run?.startedAt === 'number' ? run.startedAt : startedAt,
+    peekStarts:
+      typeof run?.peekStarts === 'number' ? Math.max(0, Math.floor(run.peekStarts)) : 0,
+    peekCount: typeof run?.peekCount === 'number' ? Math.max(0, Math.floor(run.peekCount)) : 0,
+    peekAbandoned:
+      typeof run?.peekAbandoned === 'number'
+        ? Math.max(0, Math.floor(run.peekAbandoned))
+        : 0,
+    peekMs: typeof run?.peekMs === 'number' ? Math.max(0, Math.floor(run.peekMs)) : 0,
+    peekGrants: patchPeekGrants(run),
+    peekWait: patchPeekWait(run?.peekWait),
   };
 }
 
@@ -245,14 +307,35 @@ function patchActiveSession(
       typeof session.longBreakMinutes === 'number' ? session.longBreakMinutes : 15,
     isLongBreak: session.isLongBreak === true,
     repeat: session.repeat ?? settings.lastRepeat,
+    strictLockControls: session.strictLockControls === true,
+    strictAllowPeek: session.strictAllowPeek === true,
+    strictAllowPeekOnBreak: session.strictAllowPeekOnBreak === true,
+    strictEscalatePeek: session.strictEscalatePeek === true,
     plannedMs: session.plannedMs,
     startedAt: session.startedAt,
-    status: session.status,
+    status:
+      session.status === 'running' ||
+      session.status === 'paused' ||
+      session.status === 'awaiting'
+        ? session.status
+        : 'running',
     endsAt: session.endsAt ?? null,
     remainingMs: session.remainingMs ?? null,
     distractionOverrides: session.distractionOverrides ?? 0,
     distractionBySite: patchSiteCounts(session.distractionBySite),
     pauseCount: typeof session.pauseCount === 'number' ? session.pauseCount : 0,
+    peekStarts:
+      typeof session.peekStarts === 'number'
+        ? Math.max(0, Math.floor(session.peekStarts))
+        : 0,
+    peekCount:
+      typeof session.peekCount === 'number' ? Math.max(0, Math.floor(session.peekCount)) : 0,
+    peekAbandoned:
+      typeof session.peekAbandoned === 'number'
+        ? Math.max(0, Math.floor(session.peekAbandoned))
+        : 0,
+    peekMs:
+      typeof session.peekMs === 'number' ? Math.max(0, Math.floor(session.peekMs)) : 0,
     run: patchRunStats(session.run, session.startedAt),
     taskFocus: patchTaskFocus(session.taskFocus),
   };
@@ -302,6 +385,15 @@ function patchSessionRecord(raw: unknown): SessionRecord | null {
     breakCount: typeof record.breakCount === 'number' ? record.breakCount : 0,
     breakMs: typeof record.breakMs === 'number' ? record.breakMs : 0,
     distractionBySite: patchSiteCounts(record.distractionBySite),
+    peekStarts:
+      typeof record.peekStarts === 'number' ? Math.max(0, Math.floor(record.peekStarts)) : 0,
+    peekCount:
+      typeof record.peekCount === 'number' ? Math.max(0, Math.floor(record.peekCount)) : 0,
+    peekAbandoned:
+      typeof record.peekAbandoned === 'number'
+        ? Math.max(0, Math.floor(record.peekAbandoned))
+        : 0,
+    peekMs: typeof record.peekMs === 'number' ? Math.max(0, Math.floor(record.peekMs)) : 0,
     taskId: typeof record.taskId === 'string' ? record.taskId : null,
     taskTitle: typeof record.taskTitle === 'string' ? record.taskTitle : null,
   };
@@ -339,6 +431,15 @@ function patchSessionSummary(raw: unknown): SessionSummary | null {
     distractionOverrides:
       typeof summary.distractionOverrides === 'number' ? summary.distractionOverrides : 0,
     pauseCount: typeof summary.pauseCount === 'number' ? summary.pauseCount : 0,
+    peekStarts:
+      typeof summary.peekStarts === 'number' ? Math.max(0, Math.floor(summary.peekStarts)) : 0,
+    peekCount:
+      typeof summary.peekCount === 'number' ? Math.max(0, Math.floor(summary.peekCount)) : 0,
+    peekAbandoned:
+      typeof summary.peekAbandoned === 'number'
+        ? Math.max(0, Math.floor(summary.peekAbandoned))
+        : 0,
+    peekMs: typeof summary.peekMs === 'number' ? Math.max(0, Math.floor(summary.peekMs)) : 0,
     tasks: patchRunTaskFocus(summary.tasks),
     startedAt: summary.startedAt,
     endedAt: summary.endedAt,

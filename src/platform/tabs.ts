@@ -1,5 +1,18 @@
 import type { TabsAdapter } from './interfaces';
 
+/** Chrome throws these when two navigations race on the same tab. */
+function isBenignNavigationError(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : '';
+  return /navigation rejected|cannot be edited right now|no tab with id/i.test(
+    message,
+  );
+}
+
 export function createTabsAdapter(): TabsAdapter {
   return {
     async queryAll() {
@@ -9,7 +22,14 @@ export function createTabsAdapter(): TabsAdapter {
         .map((tab) => ({ id: tab.id, url: tab.url }));
     },
     async redirect(tabId: number, url: string) {
-      await chrome.tabs.update(tabId, { url });
+      try {
+        await chrome.tabs.update(tabId, { url });
+      } catch (error: unknown) {
+        if (isBenignNavigationError(error)) {
+          return;
+        }
+        throw error;
+      }
     },
     async getActiveTab() {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });

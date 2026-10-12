@@ -19,6 +19,18 @@ export function createActionBadgeAdapter(): ActionBadgeAdapter {
         return;
       }
 
+      if (session.status === 'awaiting') {
+        const awaitingTitle =
+          session.phase === 'break'
+            ? 'Aegis · Break finished · Choose start focus or end'
+            : 'Aegis · Focus finished · Choose extend or break';
+        await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND });
+        await chrome.action.setBadgeTextColor({ color: BADGE_TEXT });
+        await chrome.action.setBadgeText({ text: 'Done' });
+        await chrome.action.setTitle({ title: awaitingTitle });
+        return;
+      }
+
       const remainingMs = getRemainingMs(session, now);
       const paused = session.status === 'paused';
       const badge = formatBadgeText(remainingMs, paused);

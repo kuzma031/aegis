@@ -53,6 +53,28 @@ describe('sitesToBlock', () => {
       'x.com',
     ]);
 
+    state = {
+      ...state,
+      activeSession: {
+        ...state.activeSession!,
+        run: {
+          ...state.activeSession!.run,
+          peekGrants: [{ host: 'reddit.com', expiresAt: NOW + 60_000 }],
+        },
+      },
+    };
+    expect(sitesToBlock(state, NOW)).toEqual([
+      'youtube.com',
+      'instagram.com',
+      'x.com',
+    ]);
+    expect(sitesToBlock(state, NOW + 60_000)).toEqual([
+      'reddit.com',
+      'youtube.com',
+      'instagram.com',
+      'x.com',
+    ]);
+
     const paused = pauseSession(state, NOW + 60_000);
     expect(paused.ok).toBe(true);
     if (!paused.ok) return;

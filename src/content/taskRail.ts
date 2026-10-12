@@ -4,6 +4,7 @@ import { setTaskStatus, sortTasksForDisplay } from '@core/tasks';
 import type { AppState, Task, TaskStatus } from '@core/types';
 import { migrate } from '@platform/migrations';
 import { STORAGE_KEY } from '@platform/storage';
+import { mountPeekChip } from './peekChip';
 import { TASK_RAIL_STYLES } from './taskRailStyles';
 
 const HOST_TAG = 'aegis-v0x-dock';
@@ -248,3 +249,4 @@ function mount(): void {
 }
 
 mount();
+mountPeekChip();

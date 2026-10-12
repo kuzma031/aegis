@@ -231,6 +231,35 @@ export function StatsView({ state }: { state: AppState }) {
 
         <div className="stats-panel">
           <div className="stats-panel-head">
+            <strong>Peeks</strong>
+            <span className="accent">
+              {current.peekCount > 0
+                ? `${current.peekCount} taken`
+                : current.peekStarts > 0
+                  ? 'None completed'
+                  : 'None yet'}
+            </span>
+          </div>
+          <div className="ward-row">
+            <span>Peeks started</span>
+            <strong>{current.peekStarts}</strong>
+          </div>
+          <div className="ward-row" style={{ paddingTop: 4 }}>
+            <span>Peeks taken</span>
+            <strong>{current.peekCount}</strong>
+          </div>
+          <div className="ward-row" style={{ paddingTop: 4 }}>
+            <span>Peek time unlocked</span>
+            <strong>{formatDuration(current.peekMs)}</strong>
+          </div>
+          <div className="ward-row" style={{ paddingTop: 4 }}>
+            <span>Peeks cancelled</span>
+            <strong>{current.peekAbandoned}</strong>
+          </div>
+        </div>
+
+        <div className="stats-panel">
+          <div className="stats-panel-head">
             <strong>Distractions Warded Off</strong>
             <span className="accent">
               {siteTotal > 0

@@ -10,6 +10,10 @@ export interface PeriodStats {
   pauseCount: number;
   breakCount: number;
   breakMs: number;
+  peekStarts: number;
+  peekCount: number;
+  peekAbandoned: number;
+  peekMs: number;
 }
 
 export interface TodayStats {
@@ -82,6 +86,10 @@ function emptyPeriodStats(): PeriodStats {
     pauseCount: 0,
     breakCount: 0,
     breakMs: 0,
+    peekStarts: 0,
+    peekCount: 0,
+    peekAbandoned: 0,
+    peekMs: 0,
   };
 }
 
@@ -105,6 +113,10 @@ export function getPeriodStats(
     stats.pauseCount += record.pauseCount;
     stats.breakCount += record.breakCount;
     stats.breakMs += record.breakMs;
+    stats.peekStarts += record.peekStarts;
+    stats.peekCount += record.peekCount;
+    stats.peekAbandoned += record.peekAbandoned;
+    stats.peekMs += record.peekMs;
   }
 
   return stats;
