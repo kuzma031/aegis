@@ -13,8 +13,10 @@ import { isDevelopmentMode } from '@core/env';
 import type { AppState, Context } from '@core/types';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { Toggle } from '../components/Toggle';
 import {
   IconBack,
+  IconClock,
   IconEdit,
   IconInfo,
   IconPlus,
@@ -173,9 +175,9 @@ export function ContextsView({
         </button>
       </header>
 
-      <div className="screen-banner" style={{ background: '#fcfaf7', borderColor: '#f4eee6' }}>
-        <span style={{ color: '#64748b' }}>Distractions blocked</span>
-        <span style={{ fontWeight: 600, color: '#92400e' }}>
+      <div className="screen-banner">
+        <span>Blocked sites in selected context</span>
+        <span>
           {totalSites} {totalSites === 1 ? 'site' : 'sites'}
         </span>
       </div>
@@ -233,18 +235,9 @@ export function ContextsView({
             const isSelected = context.id === selected?.id;
             const isSessionActive = activeSession?.contextId === context.id;
             return (
-              <div
+              <article
                 key={context.id}
                 className={`context-card${isSelected ? ' context-card-active' : ''}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => void handleSelectContext(context.id)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    void handleSelectContext(context.id);
-                  }
-                }}
               >
                 <div className="context-card-top">
                   <div className="context-card-identity">
@@ -253,58 +246,47 @@ export function ContextsView({
                       <h3 className="context-name">
                         {context.name}
                         {isSessionActive ? (
-                          <span className="badge badge-active">Active</span>
+                          <span className="badge badge-active">In session</span>
+                        ) : isSelected ? (
+                          <span className="badge badge-soft">Selected</span>
                         ) : null}
                       </h3>
                     </div>
                   </div>
-                  {isSelected ? (
+                  <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                    {isSelected ? null : (
+                      <button
+                        type="button"
+                        className="mini-action"
+                        onClick={() => void handleSelectContext(context.id)}
+                      >
+                        Select
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="edit-icon-btn"
                       aria-label={`Edit ${context.name}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setEditingId(context.id);
-                      }}
+                      onClick={() => setEditingId(context.id)}
                     >
                       <IconEdit />
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="mini-action"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleSelectContext(context.id);
-                      }}
-                    >
-                      Switch
-                    </button>
-                  )}
+                  </div>
                 </div>
                 <div className="context-card-footer">
                   <div className="row" style={{ gap: 8 }}>
                     <span className="context-card-sites">
                       <IconShield className="context-card-logo" />
-                      <strong>{context.sites.length}</strong> blocked{' '}
+                      <strong>{context.sites.length}</strong>{' '}
                       {context.sites.length === 1 ? 'site' : 'sites'}
                     </span>
-                    <span>
-                      ⏱️ <strong>{formatDefaultTiming(context)}</strong> default
+                    <span className="context-card-sites">
+                      <IconClock className="context-card-logo" />
+                      <strong>{formatDefaultTiming(context)}</strong>
                     </span>
                   </div>
-                  <span
-                    className={
-                      isSessionActive || isSelected
-                        ? 'context-status'
-                        : 'context-status-idle'
-                    }
-                  >
-                    {isSessionActive ? 'Guarded' : isSelected ? 'Selected' : 'Idle'}
-                  </span>
                 </div>
-              </div>
+              </article>
             );
           })
         )}
@@ -315,8 +297,8 @@ export function ContextsView({
               <IconInfo style={{ width: 14, height: 14 }} />
             </div>
             <p>
-              Each context shields custom domains. Sites listed in{' '}
-              <strong>{selected.name}</strong> are blocked automatically during a session.
+              Sites listed in <strong>{selected.name}</strong> are blocked during a
+              session that uses this context.
             </p>
           </div>
         ) : null}
@@ -516,7 +498,7 @@ function ContextDetail({
       <div className="edit-body">
         <section className="edit-section">
           <div className="row" style={{ justifyContent: 'space-between' }}>
-            <span className="edit-section-label">Identity & Scope</span>
+            <span className="edit-section-label">Name and timing</span>
           </div>
           <label className="field">
             <span className="muted" style={{ fontWeight: 500, color: 'var(--color-text)' }}>
@@ -595,51 +577,36 @@ function ContextDetail({
             {error && !isLongBreakError ? (
               <p className="error-text duration-error">{error}</p>
             ) : null}
-            <label
-              className="auto-repeat-check"
+            <Toggle
               title="When enabled, a new focus session starts automatically after your break ends — until you stop the cycle."
-            >
-              <input
-                type="checkbox"
-                checked={autoRepeat}
-                onChange={(event) => {
-                  const next = event.target.checked;
-                  setAutoRepeat(next);
-                  void saveDefaults(next, blockDuringBreak, longBreaksEnabled);
-                }}
-              />
-              <span>Auto-start next session</span>
-            </label>
-            <label
-              className="auto-repeat-check"
-              title="Recommended: keeping distractions blocked on break helps you stay focused. Stretch, hydrate, or take a short walk instead of browsing."
-            >
-              <input
-                type="checkbox"
-                checked={blockDuringBreak}
-                onChange={(event) => {
-                  const next = event.target.checked;
-                  setBlockDuringBreak(next);
-                  void saveDefaults(autoRepeat, next, longBreaksEnabled);
-                }}
-              />
-              <span>Keep sites blocked during breaks</span>
-            </label>
-            <label
-              className="auto-repeat-check"
+              checked={autoRepeat}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setAutoRepeat(next);
+                void saveDefaults(next, blockDuringBreak, longBreaksEnabled);
+              }}
+              label="Auto-start next session"
+            />
+            <Toggle
+              title="Keeping sites blocked on break helps you stay off those pages until the next focus."
+              checked={blockDuringBreak}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setBlockDuringBreak(next);
+                void saveDefaults(autoRepeat, next, longBreaksEnabled);
+              }}
+              label="Keep sites blocked during breaks"
+            />
+            <Toggle
               title="After several focus sessions, take a longer break instead of the short one."
-            >
-              <input
-                type="checkbox"
-                checked={longBreaksEnabled}
-                onChange={(event) => {
-                  const next = event.target.checked;
-                  setLongBreaksEnabled(next);
-                  void saveDefaults(autoRepeat, blockDuringBreak, next);
-                }}
-              />
-              <span>Long breaks</span>
-            </label>
+              checked={longBreaksEnabled}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setLongBreaksEnabled(next);
+                void saveDefaults(autoRepeat, blockDuringBreak, next);
+              }}
+              label="Long breaks"
+            />
             {longBreaksEnabled ? (
               <>
                 <div className="duration-inputs" role="group" aria-label="Long break settings">
@@ -694,113 +661,89 @@ function ContextDetail({
             Optional locks for when willpower runs low. Copied onto the session when you
             start.
           </p>
-          <label
-            className="auto-repeat-check"
+          <Toggle
             title="Hide pause and end while a timer is running. You can still choose at phase boundaries."
-          >
-            <input
-              type="checkbox"
-              checked={strictLockControls}
-              onChange={(event) => {
-                const next = event.target.checked;
-                setStrictLockControls(next);
-                void saveDefaults(
-                  autoRepeat,
-                  blockDuringBreak,
-                  longBreaksEnabled,
-                  dailyGoalMinutes,
-                  next,
-                );
-              }}
-            />
-            <span>Lock pause &amp; end during session</span>
-          </label>
-          <label
-            className="auto-repeat-check"
+            checked={strictLockControls}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setStrictLockControls(next);
+              void saveDefaults(
+                autoRepeat,
+                blockDuringBreak,
+                longBreaksEnabled,
+                dailyGoalMinutes,
+                next,
+              );
+            }}
+            label="Lock pause and end during session"
+          />
+          <Toggle
             title="On the blocked page, wait then open that site for a chosen duration during focus."
-          >
-            <input
-              type="checkbox"
-              checked={strictAllowPeek}
-              onChange={(event) => {
-                const next = event.target.checked;
-                setStrictAllowPeek(next);
-                const escalate =
-                  next || strictAllowPeekOnBreak ? strictEscalatePeek : false;
-                if (!next && !strictAllowPeekOnBreak) {
-                  setStrictEscalatePeek(false);
-                }
-                void saveDefaults(
-                  autoRepeat,
-                  blockDuringBreak,
-                  longBreaksEnabled,
-                  dailyGoalMinutes,
-                  strictLockControls,
-                  next,
-                  strictAllowPeekOnBreak,
-                  escalate,
-                );
-              }}
-            />
-            <span>Allow a peek during focus</span>
-          </label>
-          <label
-            className="auto-repeat-check"
+            checked={strictAllowPeek}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setStrictAllowPeek(next);
+              const escalate =
+                next || strictAllowPeekOnBreak ? strictEscalatePeek : false;
+              if (!next && !strictAllowPeekOnBreak) {
+                setStrictEscalatePeek(false);
+              }
+              void saveDefaults(
+                autoRepeat,
+                blockDuringBreak,
+                longBreaksEnabled,
+                dailyGoalMinutes,
+                strictLockControls,
+                next,
+                strictAllowPeekOnBreak,
+                escalate,
+              );
+            }}
+            label="Allow a peek during focus"
+          />
+          <Toggle
             title="Same peek flow during breaks when sites stay blocked."
-          >
-            <input
-              type="checkbox"
-              checked={strictAllowPeekOnBreak}
-              onChange={(event) => {
-                const next = event.target.checked;
-                setStrictAllowPeekOnBreak(next);
-                const escalate = strictAllowPeek || next ? strictEscalatePeek : false;
-                if (!strictAllowPeek && !next) {
-                  setStrictEscalatePeek(false);
-                }
-                void saveDefaults(
-                  autoRepeat,
-                  blockDuringBreak,
-                  longBreaksEnabled,
-                  dailyGoalMinutes,
-                  strictLockControls,
-                  strictAllowPeek,
-                  next,
-                  escalate,
-                );
-              }}
-            />
-            <span>Allow a peek during breaks</span>
-          </label>
-          <label
-            className={`auto-repeat-check${
-              strictAllowPeek || strictAllowPeekOnBreak
-                ? ''
-                : ' auto-repeat-check-disabled'
-            }`}
+            checked={strictAllowPeekOnBreak}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setStrictAllowPeekOnBreak(next);
+              const escalate = strictAllowPeek || next ? strictEscalatePeek : false;
+              if (!strictAllowPeek && !next) {
+                setStrictEscalatePeek(false);
+              }
+              void saveDefaults(
+                autoRepeat,
+                blockDuringBreak,
+                longBreaksEnabled,
+                dailyGoalMinutes,
+                strictLockControls,
+                strictAllowPeek,
+                next,
+                escalate,
+              );
+            }}
+            label="Allow a peek during breaks"
+          />
+          <Toggle
             title="Each peek makes the next wait longer: 10s, then 1m, 5m, 15m, 30m."
-          >
-            <input
-              type="checkbox"
-              checked={strictEscalatePeek}
-              disabled={!strictAllowPeek && !strictAllowPeekOnBreak}
-              onChange={(event) => {
-                const next = event.target.checked;
-                setStrictEscalatePeek(next);
-                void saveDefaults(
-                  autoRepeat,
-                  blockDuringBreak,
-                  longBreaksEnabled,
-                  dailyGoalMinutes,
-                  strictLockControls,
-                  strictAllowPeek,
-                  strictAllowPeekOnBreak,
-                  next,
-                );
-              }}
-            />
-            <span>Longer wait after each peek</span>
-          </label>
+            checked={strictEscalatePeek}
+            disabled={!strictAllowPeek && !strictAllowPeekOnBreak}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setStrictEscalatePeek(next);
+              void saveDefaults(
+                autoRepeat,
+                blockDuringBreak,
+                longBreaksEnabled,
+                dailyGoalMinutes,
+                strictLockControls,
+                strictAllowPeek,
+                strictAllowPeekOnBreak,
+                next,
+              );
+            }}
+            label="Longer wait after each peek"
+          />
         </section>
 
         <section className="stack" style={{ gap: 8 }}>
@@ -815,7 +758,7 @@ function ContextDetail({
             </div>
           </div>
           <p className="muted" style={{ marginTop: -4 }}>
-            These domains will be warded during active sessions.
+            These domains are blocked during a session that uses this context.
           </p>
 
           <form
@@ -850,7 +793,7 @@ function ContextDetail({
           {latest.sites.length === 0 ? (
             <EmptyState
               title="No sites blocked"
-              description="Add a domain above to shield it during focus sessions."
+              description="Add a domain above to block it during focus sessions."
             />
           ) : (
             <div className="stack" style={{ gap: 6 }}>

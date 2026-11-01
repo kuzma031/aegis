@@ -11,6 +11,7 @@ import {
 } from '@core/completionFeedback';
 import type { AppState, Settings, TaskPresentation } from '@core/types';
 import { playUrlWithWebAudio, previewLoop, stopPreviewLoop } from '@platform/webAudioSound';
+import { Toggle } from '../components/Toggle';
 import { IconShield } from '../components/icons';
 import { getAppRepository } from '../services/repository';
 
@@ -159,14 +160,11 @@ export function SettingsView({ state }: { state: AppState }) {
           <p className="settings-section-copy">
             Loops while a session is running, including breaks. Stops when you pause or end it.
           </p>
-          <label className="auto-repeat-check">
-            <input
-              type="checkbox"
-              checked={settings.ambientEnabled}
-              onChange={(event) => void setAmbientEnabled(event.target.checked)}
-            />
-            <span>Play during sessions</span>
-          </label>
+          <Toggle
+            checked={settings.ambientEnabled}
+            onChange={(event) => void setAmbientEnabled(event.target.checked)}
+            label="Play during sessions"
+          />
           {settings.ambientEnabled ? (
             <div className="settings-option-list" role="radiogroup" aria-label="Focus audio">
               {AMBIENT_TRACKS.map((track) => {

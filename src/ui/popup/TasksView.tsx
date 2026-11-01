@@ -114,8 +114,8 @@ export function TasksView({ state }: { state: AppState }) {
         </button>
       </header>
 
-      <div className="screen-banner" style={{ background: '#fcfaf7', borderColor: '#f4eee6' }}>
-        <span style={{ color: '#64748b' }}>
+      <div className="screen-banner">
+        <span>
           {openCount} open · {activeCount} working
         </span>
       </div>

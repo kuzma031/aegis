@@ -55,6 +55,8 @@ export function App() {
   const [durationMinutes, setDurationMinutes] = useState(1);
   const [breathPhase, setBreathPhase] = useState<'in' | 'out'>('in');
   const recordedDistraction = useRef(false);
+  const peekDialogRef = useRef<HTMLDivElement | null>(null);
+  const peekCloseRef = useRef<HTMLButtonElement | null>(null);
 
   const original = useMemo(
     () => parseOriginalFromHash(window.location.hash),
@@ -116,6 +118,10 @@ export function App() {
   useEffect(() => {
     if (!overlayOpen) {
       setBreathPhase('in');
+      return;
+    }
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
       return;
     }
     const id = window.setInterval(() => {
@@ -192,6 +198,47 @@ export function App() {
     }
   }
 
+  const awaitingChoice = session?.status === 'awaiting';
+  const waitForHost = peekWait?.host === original?.host ? peekWait : null;
+  const showOverlay = overlayOpen && waitForHost != null && !awaitingChoice;
+
+  useEffect(() => {
+    if (!showOverlay) {
+      return;
+    }
+    peekCloseRef.current?.focus();
+    const dialog = peekDialogRef.current;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        void handleCancelPeek();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialog) {
+        return;
+      }
+      const focusable = [
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), select:not([disabled])',
+        ),
+      ];
+      if (focusable.length === 0) {
+        return;
+      }
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showOverlay]);
+
   if (loading || !state) {
     return (
       <div className="blocked-shell">
@@ -242,7 +289,6 @@ export function App() {
     );
   }
 
-  const awaitingChoice = session.status === 'awaiting';
   const awaitingBreak = awaitingChoice && session.phase === 'break';
   const remainingMs = getRemainingMs(session, now);
   const remaining = formatClock(remainingMs);
@@ -260,15 +306,12 @@ export function App() {
         ? 'Paused'
         : session.phase === 'break'
           ? 'On break'
-          : 'Active Focus Session';
+          : 'Focus';
 
-  const waitForHost =
-    peekWait?.host === original.host ? peekWait : null;
   const peekReadyMs = waitForHost ? Math.max(0, waitForHost.readyAt - now) : 0;
   const peekReady = waitForHost != null && peekReadyMs === 0;
   const showPeekButton =
     peekAllowed && !awaitingChoice && durationOptions.length > 0;
-  const showOverlay = overlayOpen && waitForHost != null && !awaitingChoice;
 
   return (
     <div className="blocked-shell">
@@ -279,10 +322,7 @@ export function App() {
           </span>
           <strong>{original.host}</strong>
         </div>
-        <div className="blocked-topbar-right">
-          <span className="blocked-live-dot" aria-hidden="true" />
-          Wardfocus guarded
-        </div>
+        <div className="blocked-topbar-right">{session.contextName}</div>
       </header>
 
       <main className="blocked-main">
@@ -296,35 +336,27 @@ export function App() {
 
         <div className="blocked-copy">
           <h1 className="blocked-title">
-            {awaitingBreak ? (
-              <>
-                Break finished for <strong>{session.contextName}</strong>.
-              </>
-            ) : awaitingChoice ? (
-              <>
-                Focus finished for <strong>{session.contextName}</strong>.
-              </>
-            ) : (
-              <>
-                You&apos;re currently immersed in <strong>{session.contextName}</strong>.
-              </>
-            )}
+            {awaitingBreak
+              ? 'Break finished'
+              : awaitingChoice
+                ? 'Focus finished'
+                : 'This site is blocked'}
           </h1>
           <p className="blocked-lede">
             {awaitingBreak ? (
               <>
                 Open Wardfocus to start another focus or end the session.{' '}
-                <strong>{original.host}</strong> stays paused until then.
+                <strong>{original.host}</strong> stays blocked until then.
               </>
             ) : awaitingChoice ? (
               <>
-                Open Wardfocus to extend your session or start a break.{' '}
-                <strong>{original.host}</strong> stays paused until then.
+                Open Wardfocus to extend, start a break, or end.{' '}
+                <strong>{original.host}</strong> stays blocked until then.
               </>
             ) : (
               <>
-                <strong>{original.host}</strong> is peacefully paused until your focus
-                window wraps up.
+                <strong>{original.host}</strong> is blocked for{' '}
+                <strong>{session.contextName}</strong> until this phase ends.
               </>
             )}
           </p>
@@ -343,32 +375,49 @@ export function App() {
               {awaitingChoice ? 'open Wardfocus to continue' : 'remaining'}
             </span>
           </div>
-          <p className="blocked-reassure">
-            Your concentration is valuable and your future self will thank you.
-          </p>
         </div>
 
-        {showPeekButton && !showOverlay ? (
-          <div className="blocked-peek">
+        <div className="blocked-actions">
+          {showPeekButton && !showOverlay ? (
             <Button variant="secondary" onClick={() => void handleStartPeek()}>
-              Open site
+              Take a peek
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+          <Button variant="primary" onClick={() => void handleClose()}>
+            Close tab
+          </Button>
+          {!controlsLocked && !awaitingChoice ? (
+            <Button variant="ghost" onClick={() => void handleEnd()}>
+              End session
+            </Button>
+          ) : null}
+        </div>
 
         {error && !showOverlay ? <p className="error-text">{error}</p> : null}
       </main>
 
       {showOverlay ? (
-        <div className="blocked-peek-overlay" role="dialog" aria-modal="true">
-          <div className="blocked-peek-card">
-            <div className="blocked-peek-ring-wrap">
-              <TimerRing progress={1} gradientId="peekWaitGradient">
+        <div className="blocked-peek-overlay">
+          <div
+            ref={peekDialogRef}
+            className="blocked-peek-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="peek-dialog-title"
+          >
+            <h2 id="peek-dialog-title" className="heading">
+              Peek at {original.host}
+            </h2>
+            <div
+              className={`blocked-peek-ring-wrap is-${breathPhase}`}
+              style={{ animationDuration: `${BREATH_PHASE_MS}ms` }}
+            >
+              <TimerRing progress={1}>
                 <span className="blocked-peek-ring-spacer" aria-hidden="true" />
               </TimerRing>
             </div>
             <p className="blocked-peek-breath-label" aria-live="polite">
-              {breathPhase === 'in' ? 'Breathe In' : 'Breathe Out'}
+              {breathPhase === 'in' ? 'Breathe in' : 'Breathe out'}
             </p>
             <label
               className={`blocked-peek-duration${peekReady ? '' : ' is-waiting'}`}
@@ -387,7 +436,11 @@ export function App() {
               </select>
             </label>
             <div className="blocked-peek-actions">
-              <Button variant="ghost" onClick={() => void handleCancelPeek()}>
+              <Button
+                ref={peekCloseRef}
+                variant="ghost"
+                onClick={() => void handleCancelPeek()}
+              >
                 Cancel
               </Button>
               <Button
@@ -401,7 +454,7 @@ export function App() {
                   void handleAllowPeek();
                 }}
               >
-                {peekReady ? 'Show website' : formatClock(peekReadyMs)}
+                {peekReady ? 'Open site' : formatClock(peekReadyMs)}
               </Button>
             </div>
             {error ? <p className="error-text">{error}</p> : null}

@@ -1,4 +1,4 @@
-import { useId, type SVGProps } from 'react';
+import type { SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -64,91 +64,13 @@ export function IconSettings(props: IconProps) {
 }
 
 export function IconShield(props: IconProps) {
-  const uid = useId().replace(/:/g, '');
-  const shieldGrad = `shieldGrad-${uid}`;
-  const goldGleam = `goldGleam-${uid}`;
-  const darkBg = `darkBg-${uid}`;
-
   return (
-    <svg viewBox="0 0 512 512" fill="none" aria-hidden="true" {...props}>
-      <defs>
-        <linearGradient id={shieldGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f59e0b" />
-          <stop offset="50%" stopColor="#d97706" />
-          <stop offset="100%" stopColor="#b45309" />
-        </linearGradient>
-        <linearGradient id={goldGleam} x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%" stopColor="#fef3c7" />
-          <stop offset="50%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#b45309" />
-        </linearGradient>
-        <linearGradient id={darkBg} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2d1d0c" />
-          <stop offset="100%" stopColor="#180e05" />
-        </linearGradient>
-      </defs>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <path
-        d="M 256 44 C 360 44 424 96 424 204 C 424 332 328 424 256 468 C 184 424 88 332 88 204 C 88 96 152 44 256 44 Z"
-        fill={`url(#${shieldGrad})`}
-      />
-      <path
-        d="M 256 68 C 342 68 396 112 396 208 C 396 316 312 396 256 436 C 200 396 116 316 116 208 C 116 112 170 68 256 68 Z"
-        fill={`url(#${darkBg})`}
-      />
-      <circle
-        cx="256"
-        cy="224"
-        r="112"
-        fill="none"
-        stroke="#d97706"
-        strokeWidth="2"
-        strokeDasharray="6 6"
-        opacity="0.6"
-      />
-      <circle
-        cx="256"
-        cy="224"
-        r="88"
-        fill="none"
-        stroke={`url(#${goldGleam})`}
-        strokeWidth="3"
-        opacity="0.8"
-      />
-      <circle cx="256" cy="224" r="64" fill="#b45309" fillOpacity="0.3" />
-      <g stroke={`url(#${goldGleam})`} strokeWidth="3.5" strokeLinecap="round">
-        <line x1="256" y1="136" x2="256" y2="152" />
-        <line x1="318" y1="162" x2="306" y2="174" />
-        <line x1="344" y1="224" x2="328" y2="224" />
-        <line x1="318" y1="286" x2="306" y2="274" />
-        <line x1="194" y1="162" x2="206" y2="174" />
-        <line x1="168" y1="224" x2="184" y2="224" />
-        <line x1="194" y1="286" x2="206" y2="274" />
-      </g>
-      <path
-        d="M 208 224 C 208 224 230 196 256 196 C 282 196 304 224 304 224 C 304 224 282 252 256 252 C 230 252 208 224 208 224 Z"
-        fill="none"
-        stroke={`url(#${goldGleam})`}
-        strokeWidth="5"
+        strokeLinecap="round"
         strokeLinejoin="round"
+        d="M12 3l7 3v6c0 4.6-3.1 8.1-7 9.7-3.9-1.6-7-5.1-7-9.7V6l7-3z"
       />
-      <circle cx="256" cy="224" r="14" fill={`url(#${goldGleam})`} />
-      <circle cx="256" cy="224" r="6" fill="#180e05" />
-      <path
-        d="M 220 280 C 236 294 276 294 292 280"
-        fill="none"
-        stroke={`url(#${goldGleam})`}
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 236 312 C 246 322 266 322 276 312"
-        fill="none"
-        stroke="#d97706"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <circle cx="256" cy="350" r="5" fill="#f59e0b" />
-      <polygon points="256,48 266,66 256,80 246,66" fill="#fef3c7" />
     </svg>
   );
 }

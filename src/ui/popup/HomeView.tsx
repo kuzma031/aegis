@@ -269,7 +269,7 @@ export function HomeView({
             <IconShield />
           </div>
           <div className="screen-header-meta">
-            <span className="screen-eyebrow">Active context:</span>
+            <span className="screen-eyebrow">Context</span>
             <div className="screen-title">
               <span className="screen-title-text">
                 {selectedContext?.name ?? 'Choose context'}
@@ -306,44 +306,34 @@ export function HomeView({
 
       <div className="screen-body">
         <div className="timer-wrap">
-          <TimerRing progress={1} gradientId="idleAegisGradient">
+          <TimerRing progress={1}>
             <span className="timer-value">{previewClock}</span>
             <div className="timer-caption">
-              <span>Ready for deep work</span>
+              <span>
+                {formatMinutesPhrase(focusMinutes)} focus
+                {breakMinutes > 0 ? ` · ${formatMinutesPhrase(breakMinutes)} break` : ''}
+              </span>
             </div>
           </TimerRing>
 
           <div className="timer-wrap-meta">
-            <div className="session-defaults" aria-label="Session timing">
-              <div className="session-defaults-times">
-                <span>
-                  Focus <strong>{formatMinutesPhrase(focusMinutes)}</strong>
-                </span>
-                <span className="session-defaults-sep" aria-hidden="true">
-                  ·
-                </span>
-                <span>
-                  Break <strong>{formatMinutesPhrase(breakMinutes)}</strong>
-                </span>
-              </div>
-              {selectedContext ? (
-                <button
-                  type="button"
-                  className="session-defaults-edit"
-                  onClick={() => onEditContext(selectedContext.id)}
-                >
-                  <IconEdit style={{ width: 12, height: 12 }} />
-                  Edit Context
-                </button>
-              ) : null}
-            </div>
+            {selectedContext ? (
+              <button
+                type="button"
+                className="session-defaults-edit"
+                onClick={() => onEditContext(selectedContext.id)}
+              >
+                <IconEdit style={{ width: 12, height: 12 }} />
+                Edit context
+              </button>
+            ) : null}
           </div>
         </div>
 
         <div className="home-actions">
           <Button variant="primary" large onClick={() => void handleStart()}>
             <IconPlay style={{ width: 16, height: 16 }} />
-            Start Focus Session
+            Start focus
           </Button>
 
           <AddCurrentSiteSection
@@ -357,17 +347,15 @@ export function HomeView({
 
           <div className="summary-ribbon">
             <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
-              <IconClock style={{ width: 14, height: 14, color: '#b45309' }} />
-              Today:{' '}
-              <strong>{formatDuration(today.focusMs)}</strong>
+              <IconClock style={{ width: 14, height: 14, color: 'var(--color-text-muted)' }} />
+              Today
             </span>
-            {dailyGoalMinutes > DAILY_GOAL_OFF ? (
-              <span>
-                <span className="accent">{formatDuration(today.focusMs)}</span>
-                {' of '}
-                {formatDuration(dailyGoalMinutes * 60_000)}
-              </span>
-            ) : null}
+            <span>
+              <strong>{formatDuration(today.focusMs)}</strong>
+              {dailyGoalMinutes > DAILY_GOAL_OFF
+                ? ` of ${formatDuration(dailyGoalMinutes * 60_000)}`
+                : ''}
+            </span>
           </div>
 
           {error ? <p className="error-text">{error}</p> : null}
@@ -559,9 +547,9 @@ function SessionEndedView({
 
       <div className="screen-body">
         <div className="session-ended">
-          <h1 className="session-ended-title">Nice work</h1>
+          <h1 className="session-ended-title">Session recap</h1>
           <p className="session-ended-subtitle">
-            Here’s what you got done in this run.
+            Focus and break time from this run.
           </p>
 
           <div className="session-ended-grid" aria-label="Session counts">
@@ -691,11 +679,11 @@ function RunningHome({
             <IconShield />
           </div>
           <div className="screen-header-meta">
-            <span className="screen-eyebrow">Active context:</span>
+            <span className="screen-eyebrow">Context</span>
             <div className="screen-title">
               <span className="screen-title-text">{session.contextName}</span>
               <span className="badge badge-soft">
-                {isBreak ? (session.isLongBreak ? 'Long break' : 'Break') : 'Active'}
+                {isBreak ? (session.isLongBreak ? 'Long break' : 'Break') : 'Focus'}
               </span>
             </div>
           </div>
@@ -704,47 +692,10 @@ function RunningHome({
 
       <div className="screen-body">
         {isBreak ? (
-          <div className="break-complete">
-            <h1 className="break-complete-title">Focus session complete</h1>
-            <p className="break-complete-subtitle">
-              You worked uninterrupted for{' '}
-              <strong>{formatMinutesPhrase(session.focusMinutes)}</strong> with{' '}
-              <strong>{session.distractionOverrides}</strong> distraction{' '}
-              {session.distractionOverrides === 1 ? 'override' : 'overrides'}.
-            </p>
-
-            <div className="break-away-card">
-              <div className="break-away-heading">
-                <svg
-                  className="break-away-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-                <span>Take {formatMinutesPhrase(session.plannedMs / 60_000)} away</span>
-              </div>
-              <p className="break-away-copy">
-                Step back from the screen. Stretch, hydrate, or rest your gaze on the
-                horizon.
-                {context?.blockDuringBreak ? (
-                  <>
-                    {' '}
-                    <strong>Shielded tabs remain preserved.</strong>
-                  </>
-                ) : null}
-              </p>
-            </div>
-
-            <div className="break-timer-row">
-              <span className="break-timer-label">
+          <div className="timer-wrap">
+            <TimerRing progress={progress}>
+              <span className="timer-value">{remaining}</span>
+              <span className="timer-remaining">
                 {isPaused
                   ? session.isLongBreak
                     ? 'Long break paused'
@@ -753,30 +704,29 @@ function RunningHome({
                     ? 'Long break remaining'
                     : 'Break remaining'}
               </span>
-              <span className="break-timer-value">{remaining}</span>
+            </TimerRing>
+            <div className="timer-wrap-meta">
+              <p className="encourage-pill">
+                {context?.blockDuringBreak
+                  ? 'Sites stay blocked during this break.'
+                  : 'Sites are unblocked during this break.'}
+              </p>
             </div>
           </div>
         ) : (
           <div className="timer-wrap">
-            <TimerRing progress={progress} gradientId="runningAegisGradient">
+            <TimerRing progress={progress}>
               <span className="timer-value">{remaining}</span>
               <span className="timer-remaining">
                 {isPaused ? 'Paused · ' : ''}
-                focus · {plannedLabel}
+                {plannedLabel} focus
               </span>
             </TimerRing>
 
             <div className="timer-wrap-meta">
-              <div className="encourage-pill">
-                <span className="star" aria-hidden="true">
-                  ✦
-                </span>
-                <span>
-                  {isPaused
-                    ? 'Paused. Blocking stays on until you resume.'
-                    : "You're in the zone. Keep up the steady flow."}
-                </span>
-              </div>
+              {isPaused ? (
+                <p className="encourage-pill">Blocking stays on until you resume.</p>
+              ) : null}
             </div>
           </div>
         )}

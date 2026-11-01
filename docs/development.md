@@ -24,10 +24,9 @@ Load the `dist/` folder, not the repository root. The root `manifest.json` is th
 | `src/core` | Pure domain: contexts, the session state machine, site matching, tasks, stats, formatting. No Chrome APIs. |
 | `src/platform` | Chrome adapters behind small interfaces: storage, alarms, declarativeNetRequest, tabs, notifications, badge, offscreen audio. |
 | `src/background` | Service worker: command dispatch, session controller, blocking sync. |
-| `src/ui` | React popup, side panel, and blocked page. |
+| `src/ui` | React popup, side panel, and blocked page. Design tokens live in `src/ui/styles/tokens.css`. |
 | `src/content` | Page-edge task rail and peek chip. |
 | `public/` | Manifest, icons, sounds, offscreen page. Copied into `dist/`. |
-| `design/` | Visual reference and static mockups. Not loaded by the extension. |
 
 Session commands (`START_SESSION`, `PAUSE_SESSION`, `RESUME_SESSION`, `END_SESSION`, `EXTEND_FOCUS`, `START_BREAK`, `CONTINUE_FOCUS`, `DISMISS_COMPLETION`, `RECORD_DISTRACTION`, `BEGIN_PEEK_WAIT`, `CLEAR_PEEK_WAIT`, `ALLOW_PEEK`, `CHECK_EXPIRED`) are messages to the worker. Creating a context, editing sites, and editing tasks call the storage repository from the page.
 

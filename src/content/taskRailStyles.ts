@@ -1,7 +1,5 @@
 /** Isolated stylesheet for the on-page task rail (Shadow DOM). Matches popup tokens. */
 export const TASK_RAIL_STYLES = `
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
-
 :host {
   all: initial;
   display: block !important;
@@ -12,32 +10,30 @@ export const TASK_RAIL_STYLES = `
   z-index: 2147483646 !important;
   pointer-events: none;
 
-  --aegis-bg: #fbf9f6;
-  --aegis-bg-warm: #faf7f2;
+  --aegis-bg: #f6f4f1;
+  --aegis-bg-warm: #f3f1ed;
   --aegis-surface: #ffffff;
-  --aegis-text: #0f172a;
-  --aegis-text-strong: #1e293b;
-  --aegis-text-muted: #64748b;
-  --aegis-text-faint: #94a3b8;
+  --aegis-text: #1c1917;
+  --aegis-text-strong: #1c1917;
+  --aegis-text-muted: #78716c;
+  --aegis-text-faint: #a8a29e;
   --aegis-primary: #b45309;
-  --aegis-primary-hover: #92400e;
-  --aegis-primary-bright: #d97706;
-  --aegis-primary-soft: #fef3c7;
-  --aegis-primary-tint: #fffbeb;
-  --aegis-primary-border: #fde68a;
+  --aegis-primary-hover: #9a3412;
+  --aegis-primary-soft: #fff7ed;
+  --aegis-primary-border: #fed7aa;
   --aegis-on-primary: #ffffff;
-  --aegis-secondary: #1e293b;
-  --aegis-on-secondary: #faf8f5;
-  --aegis-border: #eee5d8;
-  --aegis-border-strong: #e5dcce;
+  --aegis-secondary: #292524;
+  --aegis-on-secondary: #fafaf9;
+  --aegis-border: #e7e5e4;
+  --aegis-border-strong: #d6d3d1;
   --aegis-success: #047857;
   --aegis-radius-sm: 6px;
-  --aegis-radius-md: 10px;
-  --aegis-radius-lg: 12px;
-  --aegis-radius-xl: 14px;
+  --aegis-radius-md: 8px;
+  --aegis-radius-lg: 10px;
+  --aegis-radius-xl: 12px;
   --aegis-radius-full: 9999px;
-  --aegis-shadow-soft: 0 1px 3px rgba(87, 83, 78, 0.04), 0 2px 6px -1px rgba(87, 83, 78, 0.06);
-  --aegis-font: "Plus Jakarta Sans", system-ui, sans-serif;
+  --aegis-shadow-soft: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --aegis-font: Inter, system-ui, sans-serif;
 }
 
 .aegis-v0x-rail {
@@ -56,7 +52,7 @@ export const TASK_RAIL_STYLES = `
   border: 1px solid var(--aegis-border);
   border-right: none;
   background: var(--aegis-surface);
-  box-shadow: var(--aegis-shadow-soft), -6px 0 20px rgba(87, 83, 78, 0.06);
+  box-shadow: var(--aegis-shadow-soft);
   font-family: var(--aegis-font);
   color: var(--aegis-text);
   line-height: 1.4;
@@ -88,9 +84,9 @@ export const TASK_RAIL_STYLES = `
   justify-content: center;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--aegis-primary);
   background: var(--aegis-primary-soft);
@@ -108,9 +104,7 @@ export const TASK_RAIL_STYLES = `
   pointer-events: none;
   padding: 12px 12px 12px 10px;
   overflow: auto;
-  background:
-    radial-gradient(ellipse 90% 40% at 100% 0%, rgba(253, 230, 138, 0.28), transparent 55%),
-    var(--aegis-bg);
+  background: var(--aegis-bg);
   transition: opacity 120ms ease;
   scrollbar-width: thin;
   scrollbar-color: var(--aegis-border) transparent;
@@ -133,11 +127,9 @@ export const TASK_RAIL_STYLES = `
 
 .aegis-v0x-beacon {
   margin: 0 0 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--aegis-primary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--aegis-text);
 }
 
 .aegis-v0x-swarm {
@@ -154,12 +146,11 @@ export const TASK_RAIL_STYLES = `
   border-radius: var(--aegis-radius-md);
   background: var(--aegis-surface);
   padding: 12px;
-  box-shadow: var(--aegis-shadow-soft);
 }
 
 .aegis-v0x-node--active {
   border-color: var(--aegis-primary-border);
-  background: var(--aegis-primary-tint);
+  background: var(--aegis-primary-soft);
 }
 
 .aegis-v0x-node--finished {
@@ -169,10 +160,8 @@ export const TASK_RAIL_STYLES = `
 .aegis-v0x-signal {
   display: block;
   margin-bottom: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--aegis-text-faint);
 }
 
@@ -196,10 +185,9 @@ export const TASK_RAIL_STYLES = `
 .aegis-v0x-focus {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
   color: var(--aegis-text-faint);
 }
 
@@ -221,8 +209,9 @@ export const TASK_RAIL_STYLES = `
 .aegis-v0x-actuator {
   appearance: none;
   border: 1px solid transparent;
-  border-radius: var(--aegis-radius-full);
+  border-radius: var(--aegis-radius-md);
   padding: 6px 10px;
+  min-height: 32px;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -231,16 +220,6 @@ export const TASK_RAIL_STYLES = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition:
-    background 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 80ms ease;
-}
-
-.aegis-v0x-actuator:active {
-  transform: scale(0.98);
 }
 
 .aegis-v0x-actuator:focus-visible {
@@ -249,13 +228,12 @@ export const TASK_RAIL_STYLES = `
 }
 
 .aegis-v0x-actuator--engage {
-  background: linear-gradient(90deg, #b45309, #d97706, #b45309);
+  background: var(--aegis-primary);
   color: var(--aegis-on-primary);
-  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.25);
 }
 
 .aegis-v0x-actuator--engage:hover {
-  background: linear-gradient(90deg, #92400e, #b45309, #92400e);
+  background: var(--aegis-primary-hover);
 }
 
 .aegis-v0x-actuator--complete {
@@ -264,19 +242,17 @@ export const TASK_RAIL_STYLES = `
 }
 
 .aegis-v0x-actuator--complete:hover {
-  background: #0f172a;
+  background: #1c1917;
 }
 
 .aegis-v0x-actuator:not(.aegis-v0x-actuator--engage):not(.aegis-v0x-actuator--complete) {
-  background: var(--aegis-bg-warm);
-  color: #334155;
+  background: var(--aegis-surface);
+  color: var(--aegis-text);
   border-color: var(--aegis-border-strong);
-  border-radius: var(--aegis-radius-xl);
 }
 
 .aegis-v0x-actuator:not(.aegis-v0x-actuator--engage):not(.aegis-v0x-actuator--complete):hover {
-  background: #f3ece2;
-  color: var(--aegis-text-strong);
+  background: var(--aegis-bg-warm);
 }
 
 .aegis-v0x-void {
@@ -284,5 +260,12 @@ export const TASK_RAIL_STYLES = `
   font-size: 13px;
   line-height: 1.45;
   color: var(--aegis-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aegis-v0x-rail,
+  .aegis-v0x-hull {
+    transition: none;
+  }
 }
 `;

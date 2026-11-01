@@ -127,7 +127,7 @@ export function StatsView({ state }: { state: AppState }) {
             <IconShield />
           </div>
           <div className="screen-header-meta">
-            <span className="screen-eyebrow">Showing stats for</span>
+            <span className="screen-eyebrow">Stats for</span>
             <div className="screen-title">
               <span className="screen-title-text">{headerLabel}</span>
             </div>
@@ -195,12 +195,12 @@ export function StatsView({ state }: { state: AppState }) {
 
         <div className="stats-grid">
           <div className="stats-metric stats-metric-accent">
-            <span className="stats-metric-label">Deep Flow Time</span>
+            <span className="stats-metric-label">Focus time</span>
             <div className="stats-metric-value">{formatDuration(current.focusMs)}</div>
             <div className="stats-metric-delta">{formatFocusDelta(delta)}</div>
           </div>
           <div className="stats-metric">
-            <span className="stats-metric-label">Sessions Shielded</span>
+            <span className="stats-metric-label">Sessions completed</span>
             <div className="stats-metric-value">
               {current.sessionsCompleted} <span>done</span>
             </div>
@@ -213,7 +213,7 @@ export function StatsView({ state }: { state: AppState }) {
         {period === 'week' ? (
           <div className="stats-panel">
             <div className="stats-panel-head">
-              <strong>Weekly Focus Cadence</strong>
+              <strong>Weekly focus</strong>
             </div>
             <div className="cadence-bars" aria-hidden="true">
               {cadence.map((day) => (
@@ -226,6 +226,14 @@ export function StatsView({ state }: { state: AppState }) {
                 />
               ))}
             </div>
+            <ul className="visually-hidden">
+              {cadence.map((day) => (
+                <li key={`sr-${day.dayIndex}-${day.label}`}>
+                  {day.label}: {formatDuration(day.focusMs)}
+                  {day.isToday ? ' (today)' : ''}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 
@@ -260,7 +268,7 @@ export function StatsView({ state }: { state: AppState }) {
 
         <div className="stats-panel">
           <div className="stats-panel-head">
-            <strong>Distractions Warded Off</strong>
+            <strong>Blocked visits</strong>
             <span className="accent">
               {siteTotal > 0
                 ? `${siteTotal} blocked visit${siteTotal === 1 ? '' : 's'}`
@@ -282,14 +290,14 @@ export function StatsView({ state }: { state: AppState }) {
                     style={index > 0 ? { paddingTop: 4 } : undefined}
                   >
                     <span>{item.site}</span>
-                    <strong>{item.count} deflected</strong>
+                    <strong>{item.count}</strong>
                   </div>
                   <div className="ward-track">
                     <div
                       className="ward-fill"
                       style={{
                         width: `${Math.max(8, Math.round((item.count / topSiteCount) * 100))}%`,
-                        background: index === 0 ? undefined : '#b45309',
+                        background: 'var(--color-primary)',
                       }}
                     />
                   </div>
@@ -357,12 +365,12 @@ function CadenceCol({
   today?: boolean;
 }) {
   const colors: Record<typeof tone, string> = {
-    warm: '#fde68a',
-    warmer: '#fcd34d',
-    hot: '#fbbf24',
-    hotter: '#f59e0b',
+    warm: '#fed7aa',
+    warmer: '#fdba74',
+    hot: '#fb923c',
+    hotter: '#ea580c',
     today: '#b45309',
-    muted: 'rgba(226, 232, 240, 0.8)',
+    muted: '#e7e5e4',
   };
 
   return (

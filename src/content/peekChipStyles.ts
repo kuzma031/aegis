@@ -1,7 +1,5 @@
 /** Isolated stylesheet for the on-page peek countdown (Shadow DOM). */
 export const PEEK_CHIP_STYLES = `
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
-
 :host {
   all: initial;
   display: block !important;
@@ -12,15 +10,15 @@ export const PEEK_CHIP_STYLES = `
   pointer-events: none;
 
   --aegis-surface: #ffffff;
-  --aegis-text: #0f172a;
-  --aegis-text-muted: #64748b;
+  --aegis-text: #1c1917;
+  --aegis-text-muted: #78716c;
   --aegis-primary: #b45309;
-  --aegis-primary-soft: #fef3c7;
-  --aegis-primary-border: #fde68a;
-  --aegis-border: #eee5d8;
-  --aegis-radius-full: 9999px;
-  --aegis-shadow-soft: 0 1px 3px rgba(87, 83, 78, 0.04), 0 8px 24px -6px rgba(87, 83, 78, 0.14);
-  --aegis-font: "Plus Jakarta Sans", system-ui, sans-serif;
+  --aegis-primary-soft: #fff7ed;
+  --aegis-primary-border: #fed7aa;
+  --aegis-border: #e7e5e4;
+  --aegis-radius-md: 8px;
+  --aegis-shadow-soft: 0 1px 2px rgba(28, 25, 23, 0.06);
+  --aegis-font: Inter, system-ui, sans-serif;
 }
 
 .aegis-v0x-flare {
@@ -31,9 +29,9 @@ export const PEEK_CHIP_STYLES = `
   box-sizing: border-box;
   max-width: min(240px, calc(100vw - 32px));
   padding: 8px 12px;
-  border-radius: var(--aegis-radius-full);
-  border: 1px solid var(--aegis-primary-border);
-  background: linear-gradient(180deg, #fffdf9, var(--aegis-primary-soft));
+  border-radius: var(--aegis-radius-md);
+  border: 1px solid var(--aegis-border);
+  background: var(--aegis-surface);
   box-shadow: var(--aegis-shadow-soft);
   font-family: var(--aegis-font);
   color: var(--aegis-text);
@@ -42,17 +40,15 @@ export const PEEK_CHIP_STYLES = `
 }
 
 .aegis-v0x-murmur {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--aegis-primary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--aegis-text-muted);
   white-space: nowrap;
 }
 
 .aegis-v0x-chrono {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--aegis-text);
@@ -60,19 +56,13 @@ export const PEEK_CHIP_STYLES = `
 }
 
 .aegis-v0x-flare--ember {
-  animation: aegis-v0x-pulse 1.1s ease-in-out infinite;
-  border-color: #f59e0b;
+  border-color: var(--aegis-primary-border);
+  background: var(--aegis-primary-soft);
 }
 
-@keyframes aegis-v0x-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: var(--aegis-shadow-soft);
-  }
-  50% {
-    transform: scale(1.03);
-    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.12), 0 10px 28px -6px rgba(180, 83, 9, 0.28);
+@media (prefers-reduced-motion: reduce) {
+  .aegis-v0x-flare--ember {
+    animation: none;
   }
 }
 `;
