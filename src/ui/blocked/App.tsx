@@ -281,7 +281,7 @@ export function App() {
         </div>
         <div className="blocked-topbar-right">
           <span className="blocked-live-dot" aria-hidden="true" />
-          Aegis Guarded
+          Wardfocus guarded
         </div>
       </header>
 
@@ -291,7 +291,7 @@ export function App() {
           <div className="blocked-medallion-ring">
             <IconShield />
           </div>
-          <div className="blocked-medallion-badge">Golden Aegis Active</div>
+          <div className="blocked-medallion-badge">Wardfocus active</div>
         </div>
 
         <div className="blocked-copy">
@@ -313,12 +313,12 @@ export function App() {
           <p className="blocked-lede">
             {awaitingBreak ? (
               <>
-                Open Aegis to start another focus or end the session.{' '}
+                Open Wardfocus to start another focus or end the session.{' '}
                 <strong>{original.host}</strong> stays paused until then.
               </>
             ) : awaitingChoice ? (
               <>
-                Open Aegis to extend your session or start a break.{' '}
+                Open Wardfocus to extend your session or start a break.{' '}
                 <strong>{original.host}</strong> stays paused until then.
               </>
             ) : (
@@ -340,7 +340,7 @@ export function App() {
           <div className="blocked-countdown">
             <span className="blocked-countdown-value">{timeLabel}</span>
             <span className="blocked-countdown-label">
-              {awaitingChoice ? 'open Aegis to continue' : 'remaining'}
+              {awaitingChoice ? 'open Wardfocus to continue' : 'remaining'}
             </span>
           </div>
           <p className="blocked-reassure">

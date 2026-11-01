@@ -1,8 +1,8 @@
-# Aegis
+# Wardfocus
 
 Your attention has a shield.
 
-Aegis is a Manifest V3 Chrome extension for context-based focus sessions. Pick a context, start a timer, and the sites on that context are blocked until the session ends.
+Wardfocus is a Manifest V3 Chrome extension for context-based focus sessions. Pick a context, start a timer, and the sites on that context are blocked until the session ends.
 
 ## Load unpacked
 
@@ -13,64 +13,15 @@ Aegis is a Manifest V3 Chrome extension for context-based focus sessions. Pick a
 
 ## Scripts
 
-- `npm run build` — production build into `dist/`
-- `npm run dev` — rebuild on change
+- `npm run build` — production build into `dist/`, then check that the unpacked files are present
+- `npm run dev` — rebuild on change, in development mode (shorter timers are allowed)
 - `npm run typecheck` — TypeScript check
 - `npm test` — Vitest
+- `npm run icons` — regenerate the toolbar icons from `public/icons/logo.svg`
 
-## Architecture
+## Documentation
 
-```text
-Popup / Blocked page
-  -> sendCommand (session) or StateRepository (context CRUD)
-Service worker
-  -> SessionController + BlockingSync
-  -> core domain (pure)
-  -> platform adapters (storage, alarms, DNR, tabs, notifications)
-chrome.storage.local["focus.state"]
-```
-
-### Folder responsibilities
-
-| Path | Role |
-| --- | --- |
-| `src/core` | Pure domain: contexts, session state machine, site matching, stats, formatting |
-| `src/platform` | Chrome API adapters behind interfaces |
-| `src/background` | Service worker wiring, commands, blocking sync |
-| `src/ui` | React popup and blocked page only — no business rules |
-
-### Timer
-
-Sessions store timestamps, not ticking counters. While running, remaining time is `endsAt - now`. While paused, remaining time is `remainingMs`. The UI derives the clock display from those values. `chrome.alarms` fires at `endsAt` so the service worker can complete the session even after it was suspended.
-
-### Toolbar badge
-
-While a focus session is active, the extension icon shows a compact badge (`25m`, `2h`, or `||` when paused) and a hover title with the full remaining clock. Idle clears the badge. The badge refreshes at least once a minute via a repeating alarm while a session is running.
-
-### Blocking
-
-While a session is active (running or paused), `declarativeNetRequest` dynamic rules redirect matching main-frame navigations to `blocked.html#<original-url>`. Already-open tabs are redirected the same way. When blocking clears, those tabs are restored to the original URL. Storage changes mid-session (for example adding a site) re-sync rules immediately.
-
-## Manual checklist (Chrome)
-
-Run these after loading `dist/`:
-
-- [ ] Start a session, close the popup: it keeps running and blocking still works
-- [ ] Restart Chrome mid-session: remaining time is correct and the session continues
-- [ ] Restart after `endsAt`: session completes on startup with a notification and blocking off
-- [ ] Pause: clock stops, blocking stays on, resume restores the right remaining time
-- [ ] Type a blocked URL, open one in a second window, reload a blocked tab — all blocked
-- [ ] `old.reddit.com` and `www.reddit.com` are blocked; `notreddit.com` is not
-- [ ] Add a site mid-session: it blocks immediately, including the current tab
-- [ ] End the session: sites become reachable and blocked tabs return to their originals
-- [ ] Delete the selected context; delete the active context (refused); duplicate name (rejected)
-- [ ] Notification button **Start another session** reuses context and duration
-- [ ] Stop the service worker in `chrome://serviceworker-internals` mid-session; the alarm still fires
-
-## Future extension points
-
-Not implemented in V1:
-
-- Swap or wrap `StateRepository` for sync across devices
-- Extend the `Context` type with more metadata
-- Replace the blocking adapter (DNR today) without changing core session logic
+- [Overview](docs/overview.md) — what a session is, and the features that exist
+- [How it works](docs/how-it-works.md) — popup, side panel, blocked page, service worker, storage, alarms, and blocking
+- [Settings and stats](docs/settings-and-stats.md) — options, limits, and what is recorded
+- [Development](docs/development.md) — where the code lives, and a manual checklist for Chrome

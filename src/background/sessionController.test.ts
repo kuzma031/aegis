@@ -75,7 +75,7 @@ function createFakes(now: number) {
     async sync(state, syncNow) {
       const session = state.activeSession;
       if (!session) {
-        badgeSnapshots.push({ text: '', title: 'Aegis' });
+        badgeSnapshots.push({ text: '', title: 'Wardfocus' });
         return;
       }
       badgeSnapshots.push({
@@ -364,6 +364,6 @@ describe('SessionController', () => {
     expect(badgeSnapshots.at(-1)?.text).toBe('||');
 
     await controller.handleCommand({ type: 'END_SESSION' });
-    expect(badgeSnapshots.at(-1)).toEqual({ text: '', title: 'Aegis' });
+    expect(badgeSnapshots.at(-1)).toEqual({ text: '', title: 'Wardfocus' });
   });
 });

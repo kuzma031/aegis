@@ -8,7 +8,7 @@ export function SidepanelApp() {
     return (
       <div className="sidepanel-shell">
         <div className="sidepanel-content" style={{ padding: 16, justifyContent: 'center' }}>
-          <p className="muted">Loading Aegis…</p>
+          <p className="muted">Loading Wardfocus…</p>
         </div>
       </div>
     );
@@ -29,7 +29,7 @@ export function SidepanelApp() {
       <div className="sidepanel-shell">
         <div className="sidepanel-content" style={{ padding: 16 }}>
           <p className="muted" style={{ margin: 0 }}>
-            Side panel tasks are turned off. Open Aegis → Settings and choose Side panel to use
+            Side panel tasks are turned off. Open Wardfocus → Settings and choose Side panel to use
             this view.
           </p>
         </div>

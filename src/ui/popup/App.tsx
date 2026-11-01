@@ -24,7 +24,7 @@ export function App() {
     return (
       <div className="popup-shell">
         <div className="popup-content" style={{ padding: 16, justifyContent: 'center' }}>
-          <p className="muted">Loading Aegis…</p>
+          <p className="muted">Loading Wardfocus…</p>
         </div>
       </div>
     );

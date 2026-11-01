@@ -129,7 +129,7 @@ function renderRail(shadow: ShadowRoot, state: AppState, now = Date.now()): void
     rail = document.createElement('div');
     rail.className = 'aegis-v0x-rail';
     rail.setAttribute('tabindex', '0');
-    rail.setAttribute('aria-label', 'Aegis tasks');
+    rail.setAttribute('aria-label', 'Wardfocus tasks');
     shadow.appendChild(rail);
   }
 
@@ -144,7 +144,7 @@ function renderRail(shadow: ShadowRoot, state: AppState, now = Date.now()): void
 
   const beacon = document.createElement('p');
   beacon.className = 'aegis-v0x-beacon';
-  beacon.textContent = 'Aegis tasks';
+  beacon.textContent = 'Wardfocus tasks';
 
   const swarm = document.createElement('ul');
   swarm.className = 'aegis-v0x-swarm';

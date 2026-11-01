@@ -12,7 +12,7 @@ export function createNotificationAdapter(): NotificationAdapter {
       await chrome.notifications.create(SESSION_COMPLETE_NOTIFICATION_ID, {
         type: 'basic',
         iconUrl: 'icons/icon128.png',
-        title: title.trim() || 'Aegis',
+        title: title.trim() || 'Wardfocus',
         message: message.trim() || 'Session update',
         priority: 2,
       });
@@ -26,7 +26,7 @@ export function createNotificationAdapter(): NotificationAdapter {
       await chrome.notifications.create(id, {
         type: 'basic',
         iconUrl: 'icons/icon128.png',
-        title: title.trim() || 'Aegis',
+        title: title.trim() || 'Wardfocus',
         message: message.trim() || 'Session update',
         priority: 2,
         requireInteraction: true,

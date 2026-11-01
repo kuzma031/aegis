@@ -125,7 +125,7 @@ spacing:
 
 ## Brand & Style
 
-The design system embodies the archetype of the Aegis—an ancient, protective mantle cast not in sterile corporate armor, but in warm oiled slate and embossed sun-warmed gold. Designed for high-agency knowledge workers, scholars, and creators, this system rejects anxiety-driven, punitive productivity metrics (red banners, harsh locks, shame-inducing trackers). Instead, it acts as a dignified, calm focus sanctuary that quietly deflects cognitive clutter.
+Wardfocus's design system embodies an ancient, protective mantle cast not in sterile corporate armor, but in warm oiled slate and embossed sun-warmed gold. Designed for high-agency knowledge workers, scholars, and creators, this system rejects anxiety-driven, punitive productivity metrics (red banners, harsh locks, shame-inducing trackers). Instead, it acts as a dignified, calm focus sanctuary that quietly deflects cognitive clutter.
 
 The visual style merges **warm classical tactility** with **rigorous modern minimalism**. Elements evoke heavy parchment, honed alabaster stone, and burnished bronze accents. Interactions feel weighted, intentional, and reassuring. Space is generous and unhurried; typography prioritizes effortless legibility; visual depth relies on delicate, warm ambient drop shadows, chamfered rim highlights, and fine-line borders reminiscent of numismatic relief carvings.
 
@@ -170,7 +170,7 @@ Visual hierarchy uses a refined **warm relief and ambient diffusion** model, rej
 - **Level 1 (Card / Resting Tile)**: Pure `#FFFFFF` resting over alabaster. Surface defined by a dual-boundary technique: a warm whisper border (`1px solid #E7E1D8`) paired with an ambient warm-tinted shadow (`0 2px 6px -1px rgba(87, 83, 78, 0.06), 0 1px 3px rgba(87, 83, 78, 0.04)`).
 - **Level 2 (Active Context / Shield Raised)**: Elevated active session cards or hovered interactive modules: `0 8px 20px -4px rgba(180, 83, 9, 0.08), 0 3px 8px -2px rgba(87, 83, 78, 0.06)`, bounded by a crisp gold-tinted border (`#E7DFD5`).
 - **Level 3 (Modals / Overlays / Flyouts)**: Deep focus dialogs and dropdown menus: `0 16px 32px -6px rgba(30, 41, 59, 0.12), 0 6px 12px -3px rgba(30, 41, 59, 0.06)`, framed by a solid `1px solid #EAE4DC`.
-- **Gilded Rim Glow (Aegis Highlight)**: Dedicated active components display a sub-surface amber radiance via an internal highlight ring: `box-shadow: 0 0 0 1px #B45309, 0 0 16px -2px rgba(217, 119, 6, 0.25)`.
+- **Gilded Rim Glow**: Dedicated active components display a sub-surface amber radiance via an internal highlight ring: `box-shadow: 0 0 0 1px #B45309, 0 0 16px -2px rgba(217, 119, 6, 0.25)`.
 
 ## Shapes
 
