@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Wardfocus",
+    "slug": "wardfocus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "wardfocus",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wardfocus.app"
+    },
+    "android": {
+      "package": "com.wardfocus.app",
+      "permissions": ["POST_NOTIFICATIONS", "SCHEDULE_EXACT_ALARM"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#f6f4f1"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/bell.wav"],
+          "color": "#b45309"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f6f4f1",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ],
+      "expo-audio"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
